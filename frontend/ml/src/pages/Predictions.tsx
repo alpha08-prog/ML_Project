@@ -50,7 +50,7 @@ export default function Predictions() {
       </div>
 
       <div className="predictions-layout grid grid-2">
-        <div className="card">
+        <div className="card hover-float glass">
           <h3>Make a Prediction</h3>
           <div className="prediction-form">
             <div className="model-selector-group">
@@ -102,7 +102,7 @@ export default function Predictions() {
             </div>
 
             <button
-              className="btn btn-primary predict-btn"
+              className="btn btn-primary predict-btn hover-glow"
               onClick={handlePredict}
               disabled={!file || predicting}
             >
@@ -146,7 +146,7 @@ export default function Predictions() {
           )}
         </div>
 
-        <div className="card">
+        <div className="card hover-float glass">
           <h3>Recent Predictions</h3>
           <div className="predictions-list">
             {samplePredictions.map((pred, idx) => (

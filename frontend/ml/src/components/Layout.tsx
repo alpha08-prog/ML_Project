@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Brain, BarChart3, LineChart, Zap, Info } from 'lucide-react'
 import './Layout.css'
@@ -22,7 +22,7 @@ export default function Layout({ children }: LayoutProps) {
     <div className="layout">
       <header className="header">
         <div className="header-content">
-          <Link to="/" className="logo">
+          <Link to="/" className="logo pulse hover-glow">
             <Brain className="logo-icon" />
             <span className="logo-text">EEG ML Project</span>
           </Link>

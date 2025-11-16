@@ -1,8 +1,21 @@
 import { useState, useEffect } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, ZAxis } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter } from 'recharts'
 import { Eye, Download, Maximize2 } from 'lucide-react'
 import apiService from '../services/api'
 import './DataVisualization.css'
+
+// Simple synthetic signal generator for demo view
+function generateEEGSignal(samples: number, seed: number) {
+  const data: { time: number; amplitude: number }[] = []
+  const freq = 8 + (seed % 5) // 8-12 Hz alpha-like
+  const noiseLevel = 0.2
+  for (let t = 0; t < samples; t++) {
+    const signal = Math.sin((2 * Math.PI * freq * t) / samples) + (Math.cos((2 * Math.PI * (freq / 2) * t) / samples) * 0.5)
+    const noise = (Math.random() - 0.5) * noiseLevel
+    data.push({ time: t, amplitude: signal + noise })
+  }
+  return data
+}
 
 export default function DataVisualization() {
   const [selectedChannel, setSelectedChannel] = useState(0)
@@ -112,7 +125,7 @@ export default function DataVisualization() {
 
       {selectedView === 'eeg' && (
         <div className="visualization-section">
-          <div className="card">
+          <div className="card hover-float glass">
             <div className="chart-header">
               <h3>EEG Signal - Channel {channelNames[selectedChannel] || `Ch${selectedChannel}`}</h3>
               <div className="channel-selector">
@@ -144,7 +157,7 @@ export default function DataVisualization() {
             </div>
           </div>
 
-          <div className="card mt-lg">
+          <div className="card mt-lg hover-float glass">
             <h3>Multi-Channel Overview</h3>
             <ResponsiveContainer width="100%" height={500}>
               <LineChart>
@@ -158,7 +171,7 @@ export default function DataVisualization() {
                     key={idx}
                     type="monotone"
                     dataKey={`ch${idx}`}
-                    data={generateEEGSignal(128, idx).map((d, i) => ({ ...d, [`ch${idx}`]: d.amplitude }))}
+                    data={generateEEGSignal(128, idx).map((d) => ({ ...d, [`ch${idx}`]: d.amplitude }))}
                     stroke={`hsl(${idx * 45}, 70%, 50%)`}
                     strokeWidth={1.5}
                     name={name}
@@ -173,7 +186,7 @@ export default function DataVisualization() {
 
       {selectedView === 'umap' && (
         <div className="visualization-section">
-          <div className="card">
+          <div className="card hover-float glass">
             <h3>UMAP Embedding Visualization</h3>
             <p className="chart-description">
               Dimensionality reduction showing the distribution of real minority samples,
@@ -203,7 +216,7 @@ export default function DataVisualization() {
 
       {selectedView === 'distribution' && (
         <div className="visualization-section">
-          <div className="card">
+          <div className="card hover-float glass">
             <h3>Channel Importance Analysis</h3>
             <p className="chart-description">
               Integrated Gradients analysis showing feature importance per channel for
@@ -232,7 +245,7 @@ export default function DataVisualization() {
             ) : null}
           </div>
 
-          <div className="card mt-lg">
+          <div className="card mt-lg hover-float glass">
             <h3>KS Test Results</h3>
             <p className="chart-description">
               Kolmogorov-Smirnov test statistics comparing real minority vs synthetic

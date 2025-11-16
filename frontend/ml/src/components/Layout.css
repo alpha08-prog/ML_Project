@@ -12,6 +12,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  backdrop-filter: blur(8px) saturate(120%);
 }
 
 .header-content {
@@ -64,16 +65,36 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+.nav-link::after {
+  content: '';
+  display: block;
+  position: relative;
+  height: 2px;
+  width: 0;
+  background: white;
+  border-radius: 2px;
+  transition: width var(--transition-base);
+  margin-left: auto;
+}
+
 .nav-link:hover {
   background: rgba(255, 255, 255, 0.2);
   color: white;
   transform: translateY(-2px);
 }
 
+.nav-link:hover::after {
+  width: 24px;
+}
+
 .nav-link.active {
   background: rgba(255, 255, 255, 0.25);
   color: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.nav-link.active::after {
+  width: 32px;
 }
 
 .main-content {

@@ -146,17 +146,17 @@ export default function About() {
           <div className="result-item">
             <h3>Random Forest</h3>
             <ul>
-              <li>Baseline Accuracy: <strong>78%</strong></li>
-              <li>Augmented Accuracy: <strong>85%</strong></li>
-              <li>Improvement: <strong>+7%</strong></li>
+              <li>Baseline Accuracy: <strong>73.3%</strong></li>
+              <li>Augmented Accuracy: <strong>76.6%</strong></li>
+              <li>Improvement: <strong>+3.3%</strong></li>
             </ul>
           </div>
           <div className="result-item">
             <h3>CNN</h3>
             <ul>
-              <li>Baseline Accuracy: <strong>82%</strong></li>
-              <li>Augmented Accuracy: <strong>88%</strong></li>
-              <li>Improvement: <strong>+6%</strong></li>
+              <li>Baseline Accuracy: <strong>91%</strong></li>
+              <li>Augmented Accuracy: <strong>92%</strong></li>
+              <li>Improvement: <strong>+1%</strong></li>
             </ul>
           </div>
         </div>

@@ -14,7 +14,7 @@ interface MetricCardProps {
 
 function MetricCard({ title, value, change, icon, color }: MetricCardProps) {
   return (
-    <div className="metric-card card fade-in">
+    <div className="metric-card card fade-in hover-float glass">
       <div className="metric-header">
         <div className="metric-icon" style={{ background: `${color}20`, color }}>
           {icon}
@@ -160,7 +160,7 @@ export default function Dashboard() {
       </div>
 
       <div className="dashboard-charts grid grid-2">
-        <div className="card">
+        <div className="card hover-float glass">
           <h3>Class Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -183,7 +183,7 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
 
-        <div className="card">
+        <div className="card hover-float glass">
           <h3>Training Progress</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={trainingProgress}>
@@ -199,7 +199,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="card mt-lg">
+      <div className="card mt-lg hover-float glass">
         <h3>Model Performance Comparison</h3>
         <ResponsiveContainer width="100%" height={400}>
           <BarChart data={modelComparison}>
@@ -217,7 +217,7 @@ export default function Dashboard() {
       </div>
 
       <div className="info-section mt-xl">
-        <div className="card">
+        <div className="card hover-float glass">
           <h3>Project Overview</h3>
           <p>
             This project uses EEG signals to classify mental arithmetic task performance quality.

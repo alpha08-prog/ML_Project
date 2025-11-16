@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line } from 'recharts'
-import { CheckCircle, XCircle, TrendingUp } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts'
+import { CheckCircle, TrendingUp } from 'lucide-react'
 import apiService from '../services/api'
 import './ModelPerformance.css'
 
@@ -128,7 +128,7 @@ export default function ModelPerformance() {
       </div>
 
       <div className="metrics-overview grid grid-2">
-        <div className="card">
+        <div className="card hover-float glass">
           <h3>Baseline Model</h3>
           <div className="metrics-list">
             {Object.entries(baseline).map(([key, value]) => (
@@ -140,7 +140,7 @@ export default function ModelPerformance() {
           </div>
         </div>
 
-        <div className="card">
+        <div className="card hover-float glass">
           <h3>Augmented Model</h3>
           <div className="metrics-list">
             {Object.entries(augmented).map(([key, value]) => {
@@ -164,7 +164,7 @@ export default function ModelPerformance() {
         </div>
       </div>
 
-      <div className="card mt-lg">
+      <div className="card mt-lg hover-float glass">
         <h3>Performance Comparison</h3>
         <ResponsiveContainer width="100%" height={400}>
           <BarChart data={comparisonData}>
@@ -180,7 +180,7 @@ export default function ModelPerformance() {
       </div>
 
       <div className="grid grid-2 mt-lg">
-        <div className="card">
+        <div className="card hover-float glass">
           <h3>Radar Comparison</h3>
           <ResponsiveContainer width="100%" height={300}>
             <RadarChart data={radarData}>
@@ -195,7 +195,7 @@ export default function ModelPerformance() {
           </ResponsiveContainer>
         </div>
 
-        <div className="card">
+        <div className="card hover-float glass">
           <h3>Confusion Matrix</h3>
           <div className="confusion-matrix">
             <div className="cm-section">
@@ -232,7 +232,7 @@ export default function ModelPerformance() {
         </div>
       </div>
 
-      <div className="card mt-lg">
+      <div className="card mt-lg hover-float glass">
         <h3>Key Improvements</h3>
         <div className="improvements-list">
           {improvements.map((item) => (
