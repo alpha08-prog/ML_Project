@@ -1,0 +1,146 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.manifest
+*.spec
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# PyTorch model files (large - DO NOT COMMIT)
+*.pth
+*.pt
+
+# Pickle files (model files - large)
+*.pkl
+
+# NumPy arrays (large data files - DO NOT COMMIT)
+models/*.npy
+models/*.npz
+
+# Models directory (trained models are large - DO NOT COMMIT)
+# Users should train models locally
+models/*
+!models/.gitkeep
+
+# Data files (EEG data files are large - DO NOT COMMIT)
+# Keep the directory structure but ignore the actual .edf files
+Data/eegmat/*.edf
+Data/eegmat/*.EDF
+!Data/eegmat/subject-info.csv
+!Data/eegmat/README.txt
+!Data/eegmat/index.html
+!Data/eegmat/RECORDS
+!Data/eegmat/SHA256SUMS.txt
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Node.js / Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+lerna-debug.log*
+
+# Frontend build outputs
+frontend/ml/dist/
+frontend/ml/build/
+frontend/ml/.vite/
+frontend/ml/.cache/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# IDE
+*.sublime-project
+*.sublime-workspace
+*.iml
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Temporary uploads and API temp files
+temp_*.edf
+temp_*.csv
+temp_*
+uploads/
+
+# Large data files
+*.csv.bak
+*.edf.bak
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Archive directory (optional - uncomment if you don't want to commit archive/)
+# archive/

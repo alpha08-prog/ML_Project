@@ -1,0 +1,48 @@
+# IMPORTANT: Python Version Compatibility
+# Python 3.13 is very new and many packages don't have pre-built wheels yet.
+# RECOMMENDED: Use Python 3.11 or 3.12 for best compatibility
+# If you must use Python 3.13, you may need to install build tools or use pre-built wheels
+
+# Core Data Processing
+# For Python 3.13, try installing numpy first: pip install numpy --only-binary :all:
+numpy>=1.24.0,<2.0.0
+pandas>=2.0.0
+scipy>=1.10.0
+
+# EEG Data Handling
+# Note: On Windows, pyedflib may require pre-built wheels. If build fails, try:
+# python -m pip install --only-binary :all: pyedflib
+pyedflib>=0.1.30
+mne>=1.5.0
+
+# Machine Learning
+scikit-learn>=1.3.0
+xgboost>=2.0.0
+
+# Deep Learning
+# Note: PyTorch installation depends on your system (CPU vs CUDA)
+# For CPU-only: pip install torch torchaudio torchvision
+# For CUDA 11.8: pip install torch torchaudio torchvision --index-url https://download.pytorch.org/whl/cu118
+# For CUDA 12.1: pip install torch torchaudio torchvision --index-url https://download.pytorch.org/whl/cu121
+# Check https://pytorch.org/get-started/locally/ for your specific setup
+torch>=2.0.0
+torchaudio>=2.0.0
+torchvision>=0.15.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+umap-learn>=0.5.4
+
+# Model Explainability
+captum>=0.6.0
+shap>=0.42.0
+
+# Utilities
+tqdm>=4.65.0
+
+# API Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+

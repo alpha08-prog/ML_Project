@@ -1,0 +1,9 @@
+/* App-specific styles */
+#root {
+  min-height: 100vh;
+}
+
+/* Smooth page transitions */
+.page-transition {
+  animation: fadeIn 0.5s ease-out;
+}

@@ -1,0 +1,103 @@
+.dashboard {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.dashboard-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.dashboard-header h1 {
+  font-size: 2.5rem;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: var(--spacing-sm);
+}
+
+.subtitle {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+}
+
+.metrics-grid {
+  margin-bottom: var(--spacing-xl);
+}
+
+.metric-card {
+  padding: var(--spacing-lg);
+}
+
+.metric-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.metric-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.metric-content {
+  flex: 1;
+}
+
+.metric-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.metric-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.metric-change {
+  font-size: 0.75rem;
+  color: var(--success);
+  margin-top: var(--spacing-xs);
+  margin: 0;
+}
+
+.dashboard-charts {
+  margin-bottom: var(--spacing-xl);
+}
+
+.dashboard-charts .card h3 {
+  margin-bottom: var(--spacing-lg);
+  color: var(--text-primary);
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: var(--spacing-md);
+  color: var(--text-secondary);
+}
+
+.info-section {
+  margin-top: var(--spacing-xl);
+}
+
+.info-section .card h3 {
+  margin-bottom: var(--spacing-md);
+}
+
+.info-section .card p {
+  line-height: 1.8;
+  font-size: 1rem;
+}
+
