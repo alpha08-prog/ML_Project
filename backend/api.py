@@ -307,17 +307,7 @@ async def get_performance():
             }
         except Exception as e:
             print(f"Warning: Could not load CNN metrics: {e}")
-            # Use RF metrics as fallback for CNN
-            result["cnn"] = {
-                "baseline": rf_metrics,
-                "augmented": rf_aug_metrics
-            }
-    else:
-        # Use RF metrics as placeholder if CNN not available
-        result["cnn"] = {
-            "baseline": rf_metrics,
-            "augmented": rf_aug_metrics
-        }
+            # Do not include CNN section if metrics cannot be loaded
     
     return result
 

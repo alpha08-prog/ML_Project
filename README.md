@@ -4,14 +4,28 @@ A complete machine learning project for classifying EEG signals to determine men
 
 ## 🚀 Quick Start
 
-### 1. Install Dependencies
+### 1. Environment & Dependencies
 
-**Python (Backend):**
+**Recommended (Conda, Python 3.12):**
 ```bash
+# Install Miniconda (once), then in a new shell:
+conda create -n mlproj python=3.12 -y
+conda activate mlproj
+python -m pip install -U pip setuptools wheel
 python -m pip install -r requirements.txt
 ```
 
+PyTorch is optional but required for CNN features. If you have an NVIDIA GPU, install via the official channel; otherwise install CPU-only. Example (choose one):
+```bash
+# CPU-only
+conda install -y -c pytorch pytorch torchvision torchaudio cpuonly
+
+# Or CUDA 12.1
+conda install -y pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
+```
+
 **Node.js (Frontend):**
+Requires Node.js >= 20.19.0.
 ```bash
 cd frontend/ml
 npm install
@@ -58,13 +72,9 @@ Frontend runs on `http://localhost:5173`
 
 ```
 ML_Project/
-├── archive/
-│   └── work.py             # Original notebook code (reference)
 ├── backend/
 │   ├── api.py              # FastAPI backend server
-│   ├── train_models.py     # Model training script
-│   ├── README.md
-│   └── fix_pytorch.md      # PyTorch troubleshooting
+│   └── train_models.py     # Model training script
 ├── frontend/ml/
 │   ├── src/
 │   │   ├── services/
@@ -75,12 +85,9 @@ ML_Project/
 ├── models/                 # Trained models (generated, gitignored)
 ├── Data/                   # EEG dataset (gitignored)
 ├── requirements.txt        # Python dependencies
-├── .gitignore             # Git ignore rules
-├── .gitattributes         # Git attributes
-├── README.md
-├── QUICKSTART.md          # Quick start guide
-├── INTEGRATION.md         # Integration guide
-└── INSTALL.md            # Installation guide
+├── .gitignore              # Git ignore rules
+├── .gitattributes          # Git attributes
+└── README.md
 ```
 
 ## 🎯 Features
@@ -122,14 +129,12 @@ Full API documentation: `http://localhost:8000/docs`
 
 ## 📚 Documentation
 
-- [Installation Guide](INSTALL.md) - Detailed setup instructions
-- [Integration Guide](INTEGRATION.md) - Frontend-backend integration
-- [Backend README](backend/README.md) - API documentation
+All key instructions are consolidated here. The FastAPI docs are available at runtime at `http://localhost:8000/docs`.
 
 ## 🛠️ Technologies
 
 **Backend:**
-- Python 3.10+
+- Python 3.12 (recommended)
 - FastAPI
 - PyTorch
 - scikit-learn
@@ -146,8 +151,7 @@ Full API documentation: `http://localhost:8000/docs`
 
 - Models are trained on EEG data from 36 subjects
 - Class imbalance handled with synthetic data generation
-- Best model achieves ~88% accuracy
-- All visualizations use real model outputs
+- CNN features require a working PyTorch install; Random Forest works without PyTorch
 
 ## 🤝 Contributing
 
