@@ -115,7 +115,7 @@ Desktop.ini
 *.sublime-workspace
 *.iml
 
-# Testing
+# Testing 
 .pytest_cache/
 .coverage
 htmlcov/

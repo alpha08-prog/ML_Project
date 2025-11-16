@@ -7,7 +7,7 @@ Before starting the API, you **must** train the models:
 ```bash
 python backend/train_models.py
 ```
-
+ 
 This will:
 - Load EEG data from `Data/eegmat/`
 - Preprocess and create windows
