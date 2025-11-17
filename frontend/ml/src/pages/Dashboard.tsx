@@ -3,6 +3,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { TrendingUp, Users, Brain, Activity } from 'lucide-react'
 import apiService from '../services/api'
 import './Dashboard.css'
+import { motion } from 'framer-motion'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 
 interface MetricCardProps {
   title: string
@@ -14,18 +16,25 @@ interface MetricCardProps {
 
 function MetricCard({ title, value, change, icon, color }: MetricCardProps) {
   return (
-    <div className="metric-card card fade-in hover-float glass">
-      <div className="metric-header">
-        <div className="metric-icon" style={{ background: `${color}20`, color }}>
-          {icon}
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+      whileHover={{ y: -4 }}
+    >
+      <Card className="hover:shadow-glass">
+        <div className="metric-header">
+          <div className="metric-icon" style={{ background: `${color}20`, color }}>
+            {icon}
+          </div>
+          <div className="metric-content">
+            <h3 className="metric-title">{title}</h3>
+            <p className="metric-value">{value}</p>
+            {change && <p className="metric-change">{change}</p>}
+          </div>
         </div>
-        <div className="metric-content">
-          <h3 className="metric-title">{title}</h3>
-          <p className="metric-value">{value}</p>
-          {change && <p className="metric-change">{change}</p>}
-        </div>
-      </div>
-    </div>
+      </Card>
+    </motion.div>
   )
 }
 
@@ -160,72 +169,94 @@ export default function Dashboard() {
       </div>
 
       <div className="dashboard-charts grid grid-2">
-        <div className="card hover-float glass">
-          <h3>Class Distribution</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={classDistribution}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {classDistribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
+          <Card className="hover:shadow-glass">
+            <CardHeader>
+              <CardTitle>Class Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={classDistribution}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {classDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <div className="card hover-float glass">
-          <h3>Training Progress</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={trainingProgress}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="epoch" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="loss" stroke="#ef4444" name="Loss" />
-              <Line type="monotone" dataKey="accuracy" stroke="#10b981" name="Accuracy" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
+          <Card className="hover:shadow-glass">
+            <CardHeader>
+              <CardTitle>Training Progress</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={trainingProgress}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="epoch" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="loss" stroke="#ef4444" name="Loss" />
+                  <Line type="monotone" dataKey="accuracy" stroke="#10b981" name="Accuracy" />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
-      <div className="card mt-lg hover-float glass">
-        <h3>Model Performance Comparison</h3>
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={modelComparison}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="Random Forest (Baseline)" fill="#94a3b8" />
-            <Bar dataKey="Random Forest (Augmented)" fill="#6366f1" />
-            <Bar dataKey="CNN (Baseline)" fill="#f59e0b" />
-            <Bar dataKey="CNN (Augmented)" fill="#10b981" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      <motion.div className="mt-lg" whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
+        <Card className="hover:shadow-glass">
+          <CardHeader>
+            <CardTitle>Model Performance Comparison</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={modelComparison}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="Random Forest (Baseline)" fill="#94a3b8" />
+                <Bar dataKey="Random Forest (Augmented)" fill="#6366f1" />
+                <Bar dataKey="CNN (Baseline)" fill="#f59e0b" />
+                <Bar dataKey="CNN (Augmented)" fill="#10b981" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       <div className="info-section mt-xl">
-        <div className="card hover-float glass">
-          <h3>Project Overview</h3>
-          <p>
-            This project uses EEG signals to classify mental arithmetic task performance quality.
-            We employ GAN-based synthetic data generation to handle class imbalance and train
-            both Random Forest and CNN classifiers. The augmented models show significant
-            improvements in performance metrics.
-          </p>
-        </div>
+        <Card className="hover:shadow-glass">
+          <CardHeader>
+            <CardTitle>Project Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>
+              This project uses EEG signals to classify mental arithmetic task performance quality.
+              We employ GAN-based synthetic data generation to handle class imbalance and train
+              both Random Forest and CNN classifiers. The augmented models show significant
+              improvements in performance metrics.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

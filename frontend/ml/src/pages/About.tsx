@@ -1,7 +1,35 @@
+import { useEffect, useState } from 'react'
 import { Brain, Target, Zap, BarChart3, Users, FileText } from 'lucide-react'
+import apiService from '../services/api'
 import './About.css'
 
 export default function About() {
+  const [datasetInfo, setDatasetInfo] = useState<any>(null)
+  const [dashboardData, setDashboardData] = useState<any>(null)
+  const [performanceData, setPerformanceData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        const [ds, dash, perf] = await Promise.all([
+          apiService.getDatasetInfo().catch(() => null),
+          apiService.getDashboard(),
+          apiService.getPerformance(),
+        ])
+        setDatasetInfo(ds)
+        setDashboardData(dash)
+        setPerformanceData(perf)
+      } catch (e) {
+        setError('Failed to load live dataset and results. Ensure backend is running.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchAll()
+  }, [])
+
   const features = [
     {
       icon: <Brain size={32} />,
@@ -71,12 +99,12 @@ export default function About() {
         </p>
         <ul className="info-list">
           <li>
-            <strong>Group G (Good Quality):</strong> 24 subjects performing high-quality
-            mental arithmetic (Mean: 21 operations/4min, SD: 7.4)
+            <strong>Group G (Good Quality):</strong>
+            {dashboardData?.class_distribution?.good ?? ' —'} subjects
           </li>
           <li>
-            <strong>Group B (Bad Quality):</strong> 12 subjects performing low-quality
-            mental arithmetic (Mean: 7 operations/4min, SD: 3.6)
+            <strong>Group B (Bad Quality):</strong>
+            {dashboardData?.class_distribution?.bad ?? ' —'} subjects
           </li>
         </ul>
         <p>
@@ -122,19 +150,30 @@ export default function About() {
           <div className="info-item">
             <Users size={20} />
             <div>
-              <strong>Subjects:</strong> 36 (24 Good Quality, 12 Bad Quality)
+              <strong>Subjects:</strong>
+              {dashboardData?.total_subjects ?? datasetInfo?.subjects ?? ' —'}
+              {dashboardData?.class_distribution && (
+                <>
+                  {' '}(
+                  {dashboardData.class_distribution.good} Good,
+                  {' '}
+                  {dashboardData.class_distribution.bad} Bad)
+                </>
+              )}
             </div>
           </div>
           <div className="info-item">
             <FileText size={20} />
             <div>
-              <strong>EEG Channels:</strong> 23 channels (10-20 system)
+              <strong>EEG Channels:</strong>
+              {datasetInfo?.channels ?? 23} channels {datasetInfo?.system ? `(${datasetInfo.system})` : '(10-20 system)'}
             </div>
           </div>
           <div className="info-item">
             <Zap size={20} />
             <div>
-              <strong>Recording:</strong> 60s baseline + 60s task, 512 Hz (downsampled to 128 Hz)
+              <strong>Recording:</strong>
+              {datasetInfo?.recording ?? '60s baseline + 60s task, 512 Hz (downsampled to 128 Hz)'}
             </div>
           </div>
         </div>
@@ -146,20 +185,66 @@ export default function About() {
           <div className="result-item">
             <h3>Random Forest</h3>
             <ul>
-              <li>Baseline Accuracy: <strong>73.3%</strong></li>
-              <li>Augmented Accuracy: <strong>76.6%</strong></li>
-              <li>Improvement: <strong>+3.3%</strong></li>
+              <li>
+                Baseline Accuracy:
+                {' '}
+                <strong>
+                  {performanceData ? `${(performanceData.random_forest.baseline.accuracy * 100).toFixed(1)}%` : '—'}
+                </strong>
+              </li>
+              <li>
+                Augmented Accuracy:
+                {' '}
+                <strong>
+                  {performanceData ? `${(performanceData.random_forest.augmented.accuracy * 100).toFixed(1)}%` : '—'}
+                </strong>
+              </li>
+              <li>
+                Improvement:
+                {' '}
+                <strong>
+                  {performanceData
+                    ? `${((performanceData.random_forest.augmented.accuracy - performanceData.random_forest.baseline.accuracy) * 100).toFixed(1)}%`
+                    : '—'}
+                </strong>
+              </li>
             </ul>
           </div>
           <div className="result-item">
             <h3>CNN</h3>
             <ul>
-              <li>Baseline Accuracy: <strong>91%</strong></li>
-              <li>Augmented Accuracy: <strong>92%</strong></li>
-              <li>Improvement: <strong>+1%</strong></li>
+              <li>
+                Baseline Accuracy:
+                {' '}
+                <strong>
+                  {performanceData ? `${(performanceData.cnn.baseline.accuracy * 100).toFixed(1)}%` : '—'}
+                </strong>
+              </li>
+              <li>
+                Augmented Accuracy:
+                {' '}
+                <strong>
+                  {performanceData ? `${(performanceData.cnn.augmented.accuracy * 100).toFixed(1)}%` : '—'}
+                </strong>
+              </li>
+              <li>
+                Improvement:
+                {' '}
+                <strong>
+                  {performanceData
+                    ? `${((performanceData.cnn.augmented.accuracy - performanceData.cnn.baseline.accuracy) * 100).toFixed(1)}%`
+                    : '—'}
+                </strong>
+              </li>
             </ul>
           </div>
         </div>
+        {loading && (
+          <p style={{ color: 'var(--text-secondary)', marginTop: 'var(--spacing-sm)' }}>Loading live results…</p>
+        )}
+        {error && (
+          <p style={{ color: 'var(--error)', marginTop: 'var(--spacing-sm)' }}>{error}</p>
+        )}
       </div>
 
       <div className="card mt-xl">

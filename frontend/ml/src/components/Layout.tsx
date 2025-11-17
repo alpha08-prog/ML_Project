@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Brain, BarChart3, LineChart, Zap, Info } from 'lucide-react'
 import './Layout.css'
+import ThemeToggle from './ThemeToggle'
 
 interface LayoutProps {
   children: ReactNode
@@ -26,22 +27,25 @@ export default function Layout({ children }: LayoutProps) {
             <Brain className="logo-icon" />
             <span className="logo-text">EEG ML Project</span>
           </Link>
-          <nav className="nav">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const isActive = location.pathname === item.path
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`nav-link ${isActive ? 'active' : ''}`}
-                >
-                  <Icon size={18} />
-                  <span>{item.label}</span>
-                </Link>
-              )
-            })}
-          </nav>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <nav className="nav">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                const isActive = location.pathname === item.path
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`nav-link ${isActive ? 'active' : ''}`}
+                  >
+                    <Icon size={18} />
+                    <span>{item.label}</span>
+                  </Link>
+                )
+              })}
+            </nav>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
       <main className="main-content">
