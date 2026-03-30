@@ -3,9 +3,34 @@ import { Brain, Target, Zap, BarChart3, Users, FileText } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import apiService from '../services/api'
 
+interface ClassDistribution {
+  good: number
+  bad: number
+}
+
+interface DashboardData {
+  total_subjects: number
+  class_distribution: ClassDistribution
+}
+
+interface ModelMetrics {
+  accuracy: number
+}
+
+interface PerformanceData {
+  random_forest: {
+    baseline: ModelMetrics
+    augmented: ModelMetrics
+  }
+  cnn?: {
+    baseline: ModelMetrics
+    augmented: ModelMetrics
+  }
+}
+
 export default function About() {
-  const [dashboardData, setDashboardData] = useState<any>(null)
-  const [performanceData, setPerformanceData] = useState<any>(null)
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [performanceData, setPerformanceData] = useState<PerformanceData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -18,7 +43,7 @@ export default function About() {
         ])
         setDashboardData(dash)
         setPerformanceData(perf)
-      } catch (e) {
+      } catch {
         setError('Failed to load dataset details. Make sure the backend is running.')
       } finally {
         setLoading(false)

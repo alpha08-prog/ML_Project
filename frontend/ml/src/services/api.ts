@@ -4,9 +4,81 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-interface ApiResponse<T> {
-  data?: T;
-  error?: string;
+interface ClassDistribution {
+  good: number;
+  bad: number;
+}
+
+interface DashboardResponse {
+  total_subjects: number;
+  best_accuracy: number;
+  synthetic_samples: number;
+  class_distribution: ClassDistribution;
+  model_status: string;
+}
+
+interface ModelMetrics {
+  accuracy: number;
+  roc_auc: number;
+  pr_auc: number;
+  precision: number;
+  recall: number;
+  f1: number;
+}
+
+interface PerformanceResponse {
+  random_forest: {
+    baseline: ModelMetrics;
+    augmented: ModelMetrics;
+  };
+  cnn?: {
+    baseline: ModelMetrics;
+    augmented: ModelMetrics;
+  };
+}
+
+interface UMAPPoint {
+  x: number;
+  y: number;
+  type: 'real' | 'synthetic' | 'majority';
+}
+
+interface UMAPResponse {
+  points: UMAPPoint[];
+}
+
+interface ChannelImportanceResponse {
+  channels: string[];
+  importance: number[];
+  real: number[];
+  synthetic: number[];
+}
+
+interface EEGSignalResponse {
+  time: number[];
+  amplitude: number[];
+}
+
+interface PredictionResponse {
+  class: string;
+  probability: number;
+  confidence: string;
+}
+
+interface DatasetInfo {
+  total_subjects: number;
+  synthetic_samples: number;
+  class_distribution: ClassDistribution;
+  channels: number;
+  sequence_length: number;
+}
+
+interface HealthResponse {
+  status: string;
+  models_loaded: boolean;
+  torch_available: boolean;
+  cnn_available: boolean;
+  rf_available: boolean;
 }
 
 class ApiService {
@@ -38,30 +110,30 @@ class ApiService {
   }
 
   // Dashboard
-  async getDashboard() {
-    return this.request<any>('/api/dashboard');
+  async getDashboard(): Promise<DashboardResponse> {
+    return this.request<DashboardResponse>('/api/dashboard');
   }
 
   // Model Performance
-  async getPerformance() {
-    return this.request<any>('/api/performance');
+  async getPerformance(): Promise<PerformanceResponse> {
+    return this.request<PerformanceResponse>('/api/performance');
   }
 
   // Visualizations
-  async getUMAP() {
-    return this.request<any>('/api/visualization/umap');
+  async getUMAP(): Promise<UMAPResponse> {
+    return this.request<UMAPResponse>('/api/visualization/umap');
   }
 
-  async getChannelImportance() {
-    return this.request<any>('/api/visualization/channel-importance');
+  async getChannelImportance(): Promise<ChannelImportanceResponse> {
+    return this.request<ChannelImportanceResponse>('/api/visualization/channel-importance');
   }
 
-  async getEEGSignal(channel: number) {
-    return this.request<any>(`/api/visualization/eeg-signal/${channel}`);
+  async getEEGSignal(channel: number): Promise<EEGSignalResponse> {
+    return this.request<EEGSignalResponse>(`/api/visualization/eeg-signal/${channel}`);
   }
 
   // Predictions
-  async predict(file: File, modelType: 'rf' | 'cnn' = 'cnn') {
+  async predict(file: File, modelType: 'rf' | 'cnn' = 'cnn'): Promise<PredictionResponse> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('model_type', modelType);
@@ -76,7 +148,7 @@ class ApiService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      return await response.json() as PredictionResponse;
     } catch (error) {
       console.error('Prediction failed', error);
       throw error;
@@ -84,16 +156,15 @@ class ApiService {
   }
 
   // Dataset Info
-  async getDatasetInfo() {
-    return this.request<any>('/api/dataset/info');
+  async getDatasetInfo(): Promise<DatasetInfo> {
+    return this.request<DatasetInfo>('/api/dataset/info');
   }
 
   // Health check
-  async healthCheck() {
-    return this.request<any>('/api/health');
+  async healthCheck(): Promise<HealthResponse> {
+    return this.request<HealthResponse>('/api/health');
   }
 }
 
 export const apiService = new ApiService();
 export default apiService;
-

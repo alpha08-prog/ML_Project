@@ -10,7 +10,7 @@ export function Card({ className, children }: CardProps) {
   return (
     <div
       className={cn(
-        'rounded-2xl bg-white/80 dark:bg-slate-900/60 backdrop-blur p-6 shadow-soft hover:shadow-glass transition-all',
+        'rounded-2xl bg-white backdrop-blur p-6 shadow-soft hover:shadow-glass transition-all border border-slate-200/70',
         className,
       )}
     >
@@ -26,10 +26,10 @@ export function CardHeader({ className, children }: CardHeaderProps) {
 
 interface CardTitleProps { className?: string; children: ReactNode }
 export function CardTitle({ className, children }: CardTitleProps) {
-  return <h3 className={cn('text-lg font-semibold text-slate-900 dark:text-slate-100', className)}>{children}</h3>
+  return <h3 className={cn('text-lg font-semibold text-slate-900', className)}>{children}</h3>
 }
 
 interface CardContentProps { className?: string; children: ReactNode }
 export function CardContent({ className, children }: CardContentProps) {
-  return <div className={cn('text-slate-600 dark:text-slate-300', className)}>{children}</div>
+  return <div className={cn('text-slate-600', className)}>{children}</div>
 }
