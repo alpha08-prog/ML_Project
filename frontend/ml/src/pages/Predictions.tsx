@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Upload, FileText, CheckCircle, XCircle, Loader } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import apiService from '../services/api'
-import './Predictions.css'
 
 export default function Predictions() {
   const [selectedModel, setSelectedModel] = useState<'rf' | 'cnn'>('cnn')
@@ -35,10 +35,10 @@ export default function Predictions() {
     }
   }
 
-  const samplePredictions = [
+  const SAMPLE_PREDICTIONS = [
     { subject: 'Subject 01', model: 'CNN Augmented', prediction: 'Good Quality', probability: 0.87, actual: 'Good Quality', correct: true },
     { subject: 'Subject 04', model: 'CNN Augmented', prediction: 'Bad Quality', probability: 0.72, actual: 'Bad Quality', correct: true },
-    { subject: 'Subject 07', model: 'Random Forest Augmented', prediction: 'Good Quality', probability: 0.81, actual: 'Good Quality', correct: true },
+    { subject: 'Subject 07', model: 'RF Augmented', prediction: 'Good Quality', probability: 0.81, actual: 'Good Quality', correct: true },
     { subject: 'Subject 10', model: 'CNN Augmented', prediction: 'Bad Quality', probability: 0.68, actual: 'Bad Quality', correct: true },
   ]
 
@@ -123,9 +123,9 @@ export default function Predictions() {
               <div className={`result-card ${prediction.class.includes('Good') ? 'result-good' : 'result-bad'}`}>
                 <div className="result-header">
                   {prediction.class.includes('Good') ? (
-                    <CheckCircle size={32} className="result-icon" />
+                    <CheckCircle size={32} className="result-icon result-good" />
                   ) : (
-                    <XCircle size={32} className="result-icon" />
+                    <XCircle size={32} className="result-icon result-bad" />
                   )}
                   <div>
                     <div className="result-class">{prediction.class}</div>
@@ -149,7 +149,7 @@ export default function Predictions() {
         <div className="card hover-float glass">
           <h3>Recent Predictions</h3>
           <div className="predictions-list">
-            {samplePredictions.map((pred, idx) => (
+            {SAMPLE_PREDICTIONS.map((pred, idx) => (
               <div key={idx} className="prediction-item">
                 <div className="prediction-item-header">
                   <span className="prediction-subject">{pred.subject}</span>
@@ -175,30 +175,34 @@ export default function Predictions() {
         </div>
       </div>
 
-      <div className="card mt-lg">
-        <h3>Model Information</h3>
-        <div className="model-info-grid grid grid-2">
-          <div className="model-info-item">
-            <h4>CNN Augmented</h4>
-            <ul>
-              <li>Accuracy: 88%</li>
-              <li>ROC-AUC: 0.86</li>
-              <li>F1-Score: 0.85</li>
-              <li>Input: (Channels, Time) - (23, 128)</li>
-            </ul>
-          </div>
-          <div className="model-info-item">
-            <h4>Random Forest Augmented</h4>
-            <ul>
-              <li>Accuracy: 85%</li>
-              <li>ROC-AUC: 0.83</li>
-              <li>F1-Score: 0.81</li>
-              <li>Input: Flattened features (2944)</li>
-            </ul>
-          </div>
-        </div>
+      <div className="mt-lg grid grid-2">
+        <Card>
+            <CardHeader><CardTitle>Model Information - CNN Augmented</CardTitle></CardHeader>
+            <CardContent>
+                <div className="model-info-item">
+                    <ul>
+                        <li>Accuracy: 88%</li>
+                        <li>ROC-AUC: 0.86</li>
+                        <li>F1-Score: 0.85</li>
+                        <li>Input: (Channels, Time) - (23, 128)</li>
+                    </ul>
+                </div>
+            </CardContent>
+        </Card>
+        <Card>
+            <CardHeader><CardTitle>Model Information - RF Augmented</CardTitle></CardHeader>
+            <CardContent>
+                <div className="model-info-item">
+                    <ul>
+                        <li>Accuracy: 85%</li>
+                        <li>ROC-AUC: 0.83</li>
+                        <li>F1-Score: 0.81</li>
+                        <li>Input: Flattened features (2944)</li>
+                    </ul>
+                </div>
+            </CardContent>
+        </Card>
       </div>
     </div>
   )
 }
-

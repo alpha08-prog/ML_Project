@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Brain, Target, Zap, BarChart3, Users, FileText } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import apiService from '../services/api'
-import './About.css'
 
 export default function About() {
-  const [datasetInfo, setDatasetInfo] = useState<any>(null)
   const [dashboardData, setDashboardData] = useState<any>(null)
   const [performanceData, setPerformanceData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -13,16 +12,14 @@ export default function About() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [ds, dash, perf] = await Promise.all([
-          apiService.getDatasetInfo().catch(() => null),
+        const [dash, perf] = await Promise.all([
           apiService.getDashboard(),
           apiService.getPerformance(),
         ])
-        setDatasetInfo(ds)
         setDashboardData(dash)
         setPerformanceData(perf)
       } catch (e) {
-        setError('Failed to load live dataset and results. Ensure backend is running.')
+        setError('Failed to load dataset details. Make sure the backend is running.')
       } finally {
         setLoading(false)
       }
@@ -30,11 +27,11 @@ export default function About() {
     fetchAll()
   }, [])
 
-  const features = [
+  const FEATURES = [
     {
       icon: <Brain size={32} />,
       title: 'GAN-Based Data Augmentation',
-      description: 'Uses Wasserstein GAN with gradient penalty to generate synthetic minority class samples, addressing class imbalance effectively.',
+      description: 'Uses Wasserstein GAN with gradient penalty to generate synthetic minority class samples, effectively addressing class imbalance.',
     },
     {
       icon: <Target size={32} />,
@@ -44,41 +41,21 @@ export default function About() {
     {
       icon: <Zap size={32} />,
       title: 'Enhanced Performance',
-      description: 'Augmented models show significant improvements: +6% accuracy, +8% ROC-AUC, and +9% F1-score over baseline models.',
+      description: 'Augmented models show significant improvements across accuracy, ROC-AUC, and F1-score compared to baseline models.',
     },
     {
       icon: <BarChart3 size={32} />,
       title: 'Comprehensive Analysis',
-      description: 'Includes statistical validation (KS tests), UMAP visualization, and explainability techniques (Integrated Gradients, SHAP).',
+      description: 'Includes statistical validation (KS tests), UMAP visualization, and explainability with Integrated Gradients.',
     },
   ]
 
-  const methodology = [
-    {
-      step: '1',
-      title: 'Data Preprocessing',
-      description: 'EEG signals from 36 subjects, combining baseline and task recordings. Windowing (512 samples, 256 step), downsampling to 128 Hz.',
-    },
-    {
-      step: '2',
-      title: 'GAN Training',
-      description: 'Train Wasserstein GAN on minority class samples. Generator creates synthetic EEG windows, Critic ensures distribution matching.',
-    },
-    {
-      step: '3',
-      title: 'Data Augmentation',
-      description: 'Generate 500 synthetic minority samples and combine with original training data to balance the dataset.',
-    },
-    {
-      step: '4',
-      title: 'Model Training',
-      description: 'Train Random Forest and CNN classifiers on both baseline and augmented datasets. Evaluate on held-out test set.',
-    },
-    {
-      step: '5',
-      title: 'Validation & Analysis',
-      description: 'Statistical tests (KS), dimensionality reduction (UMAP), and explainability analysis to validate synthetic data quality.',
-    },
+  const METHODOLOGY = [
+    { step: '1', title: 'Data Preprocessing', description: 'EEG signals from subjects, combining baseline and task recordings. Windowing at 512 samples with a 256 step downsampled to 128 Hz.' },
+    { step: '2', title: 'GAN Training', description: 'Train Wasserstein GAN on minority class samples. The Generator creates synthetic windows while the Critic ensures distribution matching.' },
+    { step: '3', title: 'Data Augmentation', description: 'Generate synthetic minority samples and combine with original training data to produce a balanced dataset.' },
+    { step: '4', title: 'Model Training', description: 'Train Random Forest and CNN classifiers on both baseline and augmented datasets, then evaluate on held-out test sets.' },
+    { step: '5', title: 'Validation & Analysis', description: 'Apply statistical tests (KS), dimensionality reduction (UMAP), and explainability analysis to validate the augmented data quality.' },
   ]
 
   return (
@@ -87,52 +64,51 @@ export default function About() {
         <h1>EEG Mental Arithmetic Classification</h1>
         <p className="hero-subtitle">
           A machine learning project using GAN-based data augmentation to improve
-          classification of mental arithmetic task performance quality from EEG signals.
+          the classification of mental arithmetic task performance quality from EEG signals.
         </p>
       </div>
 
-      <div className="card mt-xl">
-        <h2>Problem Statement</h2>
-        <p>
-          This project addresses the challenge of classifying EEG signals to determine
-          the quality of mental arithmetic task performance. Subjects are divided into two groups:
-        </p>
-        <ul className="info-list">
-          <li>
-            <strong>Group G (Good Quality):</strong>
-            {dashboardData?.class_distribution?.good ?? ' —'} subjects
-          </li>
-          <li>
-            <strong>Group B (Bad Quality):</strong>
-            {dashboardData?.class_distribution?.bad ?? ' —'} subjects
-          </li>
-        </ul>
-        <p>
-          The class imbalance (2:1 ratio) poses a challenge for machine learning models.
-          We use GAN-based synthetic data generation to augment the minority class and
-          improve model performance.
-        </p>
-      </div>
+      <Card className="mt-xl">
+        <CardHeader><CardTitle>Problem Statement</CardTitle></CardHeader>
+        <CardContent>
+          <p>
+            This project addresses the challenge of classifying EEG signals into mental arithmetic task performance quality.
+            Subjects are categorized into two groups:
+          </p>
+          <ul className="info-list mt-md">
+            <li>
+              <strong>Good Quality (Group G):</strong>
+              {' '}{dashboardData?.class_distribution?.good ?? '—'} subjects
+            </li>
+            <li>
+              <strong>Bad Quality (Group B):</strong>
+              {' '}{dashboardData?.class_distribution?.bad ?? '—'} subjects
+            </li>
+          </ul>
+          <p className="mt-md">
+            The inherent class imbalance poses a challenge for traditional machine learning.
+            By using GAN-based synthetic data generation, we augment the minority class and significantly improve model robustness.
+          </p>
+        </CardContent>
+      </Card>
 
-      <div className="features-section mt-xl">
+      <div className="mt-xl">
         <h2>Key Features</h2>
-        <div className="features-grid grid grid-2">
-          {features.map((feature, idx) => (
-            <div key={idx} className="feature-card card">
-              <div className="feature-icon" style={{ color: 'var(--primary)' }}>
-                {feature.icon}
-              </div>
+        <div className="grid grid-2 mt-lg">
+          {FEATURES.map((feature, idx) => (
+            <Card key={idx} className="feature-card">
+              <div className="feature-icon">{feature.icon}</div>
               <h3>{feature.title}</h3>
               <p>{feature.description}</p>
-            </div>
+            </Card>
           ))}
         </div>
       </div>
 
-      <div className="methodology-section mt-xl">
+      <div className="mt-xl">
         <h2>Methodology</h2>
-        <div className="methodology-timeline">
-          {methodology.map((item, idx) => (
+        <div className="methodology-timeline mt-lg">
+          {METHODOLOGY.map((item, idx) => (
             <div key={idx} className="methodology-step">
               <div className="step-number">{item.step}</div>
               <div className="step-content">
@@ -144,125 +120,65 @@ export default function About() {
         </div>
       </div>
 
-      <div className="card mt-xl">
-        <h2>Dataset Information</h2>
-        <div className="dataset-info">
-          <div className="info-item">
-            <Users size={20} />
-            <div>
-              <strong>Subjects:</strong>
-              {dashboardData?.total_subjects ?? datasetInfo?.subjects ?? ' —'}
-              {dashboardData?.class_distribution && (
-                <>
-                  {' '}(
-                  {dashboardData.class_distribution.good} Good,
-                  {' '}
-                  {dashboardData.class_distribution.bad} Bad)
-                </>
-              )}
-            </div>
-          </div>
-          <div className="info-item">
-            <FileText size={20} />
-            <div>
-              <strong>EEG Channels:</strong>
-              {datasetInfo?.channels ?? 23} channels {datasetInfo?.system ? `(${datasetInfo.system})` : '(10-20 system)'}
-            </div>
-          </div>
-          <div className="info-item">
-            <Zap size={20} />
-            <div>
-              <strong>Recording:</strong>
-              {datasetInfo?.recording ?? '60s baseline + 60s task, 512 Hz (downsampled to 128 Hz)'}
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-2 mt-xl">
+        <Card>
+            <CardHeader><CardTitle>Dataset Information</CardTitle></CardHeader>
+            <CardContent>
+                <div className="dataset-info">
+                    <div className="info-item">
+                        <Users size={20} />
+                        <div>
+                            <strong>Subjects:</strong>
+                            {dashboardData?.total_subjects ?? '—'} (
+                            {dashboardData?.class_distribution?.good ?? '—'} Good,
+                            {' '}{dashboardData?.class_distribution?.bad ?? '—'} Bad)
+                        </div>
+                    </div>
+                    <div className="info-item">
+                        <FileText size={20} />
+                        <div>
+                            <strong>Channels:</strong> 23 (10-20 system)
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+
+        <Card>
+            <CardHeader><CardTitle>Results Summary (Live)</CardTitle></CardHeader>
+            <CardContent>
+                {loading ? <p>Loading live results…</p> : error ? <p className="text-error">{error}</p> : (
+                    <div className="grid grid-2">
+                        <div className="result-item">
+                            <h3>Random Forest</h3>
+                            <ul>
+                                <li>Base: {((performanceData?.random_forest?.baseline?.accuracy ?? 0) * 100).toFixed(1)}%</li>
+                                <li>Aug: {((performanceData?.random_forest?.augmented?.accuracy ?? 0) * 100).toFixed(1)}%</li>
+                            </ul>
+                        </div>
+                        <div className="result-item">
+                            <h3>CNN</h3>
+                            <ul>
+                                <li>Base: {((performanceData?.cnn?.baseline?.accuracy ?? 0) * 100).toFixed(1)}%</li>
+                                <li>Aug: {((performanceData?.cnn?.augmented?.accuracy ?? 0) * 100).toFixed(1)}%</li>
+                            </ul>
+                        </div>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
       </div>
 
-      <div className="card mt-xl">
-        <h2>Results Summary</h2>
-        <div className="results-grid grid grid-2">
-          <div className="result-item">
-            <h3>Random Forest</h3>
-            <ul>
-              <li>
-                Baseline Accuracy:
-                {' '}
-                <strong>
-                  {performanceData ? `${(performanceData.random_forest.baseline.accuracy * 100).toFixed(1)}%` : '—'}
-                </strong>
-              </li>
-              <li>
-                Augmented Accuracy:
-                {' '}
-                <strong>
-                  {performanceData ? `${(performanceData.random_forest.augmented.accuracy * 100).toFixed(1)}%` : '—'}
-                </strong>
-              </li>
-              <li>
-                Improvement:
-                {' '}
-                <strong>
-                  {performanceData
-                    ? `${((performanceData.random_forest.augmented.accuracy - performanceData.random_forest.baseline.accuracy) * 100).toFixed(1)}%`
-                    : '—'}
-                </strong>
-              </li>
-            </ul>
+      <Card className="mt-xl">
+        <CardHeader><CardTitle>Technologies Used</CardTitle></CardHeader>
+        <CardContent>
+          <div className="tech-tags">
+            {['Python', 'PyTorch', 'scikit-learn', 'MNE', 'PyEDFlib', 'React', 'TypeScript', 'Recharts', 'SHAP', 'UMAP'].map(tech => (
+              <span key={tech} className="tech-tag">{tech}</span>
+            ))}
           </div>
-          <div className="result-item">
-            <h3>CNN</h3>
-            <ul>
-              <li>
-                Baseline Accuracy:
-                {' '}
-                <strong>
-                  {performanceData ? `${(performanceData.cnn.baseline.accuracy * 100).toFixed(1)}%` : '—'}
-                </strong>
-              </li>
-              <li>
-                Augmented Accuracy:
-                {' '}
-                <strong>
-                  {performanceData ? `${(performanceData.cnn.augmented.accuracy * 100).toFixed(1)}%` : '—'}
-                </strong>
-              </li>
-              <li>
-                Improvement:
-                {' '}
-                <strong>
-                  {performanceData
-                    ? `${((performanceData.cnn.augmented.accuracy - performanceData.cnn.baseline.accuracy) * 100).toFixed(1)}%`
-                    : '—'}
-                </strong>
-              </li>
-            </ul>
-          </div>
-        </div>
-        {loading && (
-          <p style={{ color: 'var(--text-secondary)', marginTop: 'var(--spacing-sm)' }}>Loading live results…</p>
-        )}
-        {error && (
-          <p style={{ color: 'var(--error)', marginTop: 'var(--spacing-sm)' }}>{error}</p>
-        )}
-      </div>
-
-      <div className="card mt-xl">
-        <h2>Technologies Used</h2>
-        <div className="tech-tags">
-          <span className="tech-tag">Python</span>
-          <span className="tech-tag">PyTorch</span>
-          <span className="tech-tag">scikit-learn</span>
-          <span className="tech-tag">MNE</span>
-          <span className="tech-tag">PyEDFlib</span>
-          <span className="tech-tag">React</span>
-          <span className="tech-tag">TypeScript</span>
-          <span className="tech-tag">Recharts</span>
-          <span className="tech-tag">SHAP</span>
-          <span className="tech-tag">UMAP</span>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
-

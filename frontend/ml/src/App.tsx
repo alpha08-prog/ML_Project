@@ -1,4 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useLocation } from 'react-router-dom'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import ModelPerformance from './pages/ModelPerformance'
@@ -6,18 +8,6 @@ import DataVisualization from './pages/DataVisualization'
 import Predictions from './pages/Predictions'
 import About from './pages/About'
 import './App.css'
-import { AnimatePresence, motion } from 'framer-motion'
-import { useLocation } from 'react-router-dom'
-
-function App() {
-  return (
-    <Router>
-      <Layout>
-        <RouteTransitionContainer />
-      </Layout>
-    </Router>
-  )
-}
 
 function RouteTransitionContainer() {
   const location = useLocation()
@@ -31,15 +21,23 @@ function RouteTransitionContainer() {
         transition={{ duration: 0.2, ease: 'easeOut' }}
       >
         <Routes location={location}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/performance" element={<ModelPerformance />} />
+          <Route path="/"              element={<Dashboard />} />
+          <Route path="/performance"   element={<ModelPerformance />} />
           <Route path="/visualization" element={<DataVisualization />} />
-          <Route path="/predictions" element={<Predictions />} />
-          <Route path="/about" element={<About />} />
+          <Route path="/predictions"   element={<Predictions />} />
+          <Route path="/about"         element={<About />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <Router>
+      <Layout>
+        <RouteTransitionContainer />
+      </Layout>
+    </Router>
+  )
+}
