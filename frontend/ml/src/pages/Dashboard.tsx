@@ -6,6 +6,35 @@ import './Dashboard.css'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 
+interface ClassDistribution {
+  good: number
+  bad: number
+}
+
+interface ModelMetrics {
+  accuracy: number
+  roc_auc: number
+  f1: number
+}
+
+interface ModelData {
+  baseline: ModelMetrics
+  augmented: ModelMetrics
+}
+
+interface PerformanceData {
+  random_forest: ModelData
+  cnn: ModelData
+}
+
+interface DashboardData {
+  total_subjects: number
+  best_accuracy: number
+  synthetic_samples: number
+  model_status: string
+  class_distribution: ClassDistribution
+}
+
 interface MetricCardProps {
   title: string
   value: string | number
@@ -40,8 +69,8 @@ function MetricCard({ title, value, change, icon, color }: MetricCardProps) {
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true)
-  const [dashboardData, setDashboardData] = useState<any>(null)
-  const [performanceData, setPerformanceData] = useState<any>(null)
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [performanceData, setPerformanceData] = useState<PerformanceData | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -90,29 +119,28 @@ export default function Dashboard() {
   ] : []
 
   const modelComparison = performanceData ? [
-    { 
-      name: 'Accuracy', 
-      'Random Forest (Baseline)': performanceData.random_forest.baseline.accuracy,
-      'Random Forest (Augmented)': performanceData.random_forest.augmented.accuracy,
-      'CNN (Baseline)': performanceData.cnn.baseline.accuracy,
-      'CNN (Augmented)': performanceData.cnn.augmented.accuracy
-    },
-    { 
-      name: 'ROC-AUC', 
-      'Random Forest (Baseline)': performanceData.random_forest.baseline.roc_auc,
-      'Random Forest (Augmented)': performanceData.random_forest.augmented.roc_auc,
-      'CNN (Baseline)': performanceData.cnn.baseline.roc_auc,
-      'CNN (Augmented)': performanceData.cnn.augmented.roc_auc
-    },
-    { 
-      name: 'F1-Score', 
-      'Random Forest (Baseline)': performanceData.random_forest.baseline.f1,
-      'Random Forest (Augmented)': performanceData.random_forest.augmented.f1,
-      'CNN (Baseline)': performanceData.cnn.baseline.f1,
-      'CNN (Augmented)': performanceData.cnn.augmented.f1
-    },
-  ] : []
-
+  { 
+    name: 'Accuracy', 
+    'Random Forest (Baseline)': performanceData.random_forest.baseline.accuracy,
+    'Random Forest (Augmented)': performanceData.random_forest.augmented.accuracy,
+    'CNN (Baseline)': performanceData.cnn?.baseline?.accuracy ?? 0,
+    'CNN (Augmented)': performanceData.cnn?.augmented?.accuracy ?? 0
+  },
+  { 
+    name: 'ROC-AUC', 
+    'Random Forest (Baseline)': performanceData.random_forest.baseline.roc_auc,
+    'Random Forest (Augmented)': performanceData.random_forest.augmented.roc_auc,
+    'CNN (Baseline)': performanceData.cnn?.baseline?.roc_auc ?? 0,
+    'CNN (Augmented)': performanceData.cnn?.augmented?.roc_auc ?? 0
+  },
+  { 
+    name: 'F1-Score', 
+    'Random Forest (Baseline)': performanceData.random_forest.baseline.f1,
+    'Random Forest (Augmented)': performanceData.random_forest.augmented.f1,
+    'CNN (Baseline)': performanceData.cnn?.baseline?.f1 ?? 0,
+    'CNN (Augmented)': performanceData.cnn?.augmented?.f1 ?? 0
+  },
+] : []
   // Simulated training progress (could be enhanced with real training logs)
   const trainingProgress = [
     { epoch: 1, loss: 0.85, accuracy: 0.65 },
@@ -123,15 +151,6 @@ export default function Dashboard() {
     { epoch: 25, loss: 0.32, accuracy: 0.87 },
     { epoch: 30, loss: 0.28, accuracy: dashboardData?.best_accuracy || 0.88 },
   ]
-
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="spinner" style={{ width: '48px', height: '48px', border: '4px solid var(--border)', borderTopColor: 'var(--primary)' }}></div>
-        <p>Loading dashboard...</p>
-      </div>
-    )
-  }
 
   return (
     <div className="dashboard">

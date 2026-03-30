@@ -192,14 +192,10 @@ def main():
 
     with open(MODELS_DIR / "rf_baseline_metrics.pkl", "wb") as f:
         pickle.dump(metrics_rf, f)
-
-    probs = rf.predict_proba(X_test_f)[:, 1]
-    preds = rf.predict(X_test_f)
-
     with open(MODELS_DIR / "rf_baseline.pkl", "wb") as f:
         pickle.dump(rf, f)
 
-    print("RF Accuracy:", (preds == y_test).mean())
+    print("RF Baseline Accuracy:", metrics_rf['accuracy'])
 
     print("\n[5/6] Augmentation...")
     X_min = X_train[y_train == 0]
@@ -235,15 +231,40 @@ def main():
         device = "cuda" if torch.cuda.is_available() else "cpu"
         print("Using:", device)
 
+        # --- Baseline CNN ---
         train_loader = prepare_loader(X_train, y_train)
-        test_loader = prepare_loader(X_test, y_test, shuffle=False)
+        test_loader  = prepare_loader(X_test,  y_test,  shuffle=False)
 
-        cnn = Simple1DCNN(X_train.shape[2])
-        cnn = train_model(cnn, train_loader, device=device)
+        cnn_baseline = Simple1DCNN(X_train.shape[2])
+        cnn_baseline = train_model(cnn_baseline, train_loader, device=device)
 
-        print("CNN:", eval_model(cnn, test_loader, device))
+        metrics_cnn = eval_model(cnn_baseline, test_loader, device)
+        print("CNN Baseline:", metrics_cnn)
+
+        torch.save(cnn_baseline.state_dict(), MODELS_DIR / "cnn_baseline.pt")
+        with open(MODELS_DIR / "cnn_baseline_config.pkl", "wb") as f:
+            pickle.dump({"in_ch": X_train.shape[2]}, f)
+        with open(MODELS_DIR / "cnn_baseline_metrics.pkl", "wb") as f:
+            pickle.dump(metrics_cnn, f)
+
+        # --- Augmented CNN (trained on X_aug / y_aug) ---
+        aug_train_loader = prepare_loader(X_aug, y_aug.astype(int))
+
+        cnn_aug = Simple1DCNN(X_aug.shape[2])
+        cnn_aug = train_model(cnn_aug, aug_train_loader, device=device)
+
+        metrics_cnn_aug = eval_model(cnn_aug, test_loader, device)
+        print("CNN Augmented:", metrics_cnn_aug)
+
+        torch.save(cnn_aug.state_dict(), MODELS_DIR / "cnn_augmented.pt")
+        with open(MODELS_DIR / "cnn_augmented_config.pkl", "wb") as f:
+            pickle.dump({"in_ch": X_aug.shape[2]}, f)
+        with open(MODELS_DIR / "cnn_augmented_metrics.pkl", "wb") as f:
+            pickle.dump(metrics_cnn_aug, f)
+
+        print("✓ CNN models saved.")
     else:
-        print("Skipping CNN")
+        print("Skipping CNN (PyTorch not available)")
 
     # -------------------------
     # SAVE FOR API (CRITICAL)

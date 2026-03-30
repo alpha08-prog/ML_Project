@@ -4,9 +4,27 @@ import { Eye, Download, Maximize2 } from 'lucide-react'
 import apiService from '../services/api'
 import './DataVisualization.css'
 
+interface EEGDataPoint {
+  time: number
+  amplitude: number
+}
+
+interface UMAPDataPoint {
+  x: number
+  y: number
+  type: 'real' | 'synthetic' | 'majority'
+}
+
+interface ChannelImportance {
+  channels: string[]
+  real: number[]
+  synthetic: number[]
+  importance: number[]
+}
+
 // Simple synthetic signal generator for demo view
 function generateEEGSignal(samples: number, seed: number) {
-  const data: { time: number; amplitude: number }[] = []
+  const data: EEGDataPoint[] = []
   const freq = 8 + (seed % 5) // 8-12 Hz alpha-like
   const noiseLevel = 0.2
   for (let t = 0; t < samples; t++) {
@@ -20,9 +38,9 @@ function generateEEGSignal(samples: number, seed: number) {
 export default function DataVisualization() {
   const [selectedChannel, setSelectedChannel] = useState(0)
   const [selectedView, setSelectedView] = useState<'eeg' | 'umap' | 'distribution'>('eeg')
-  const [eegData, setEegData] = useState<any[]>([])
-  const [umapData, setUmapData] = useState<any[]>([])
-  const [channelImportance, setChannelImportance] = useState<any>(null)
+  const [eegData, setEegData] = useState<EEGDataPoint[]>([])
+  const [umapData, setUmapData] = useState<UMAPDataPoint[]>([])
+  const [channelImportance, setChannelImportance] = useState<ChannelImportance | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
