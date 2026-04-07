@@ -9,6 +9,10 @@ dependencies:
   - pytorch>=2.0
   - torchaudio>=2.0
   - torchvision>=0.15
+
+  # Packages that depend on torch — managed here to prevent poetry from pulling torch from PyPI
+  - captum>=0.6.0
+
   - pip
   - pip:
       - poetry
