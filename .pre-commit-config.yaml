@@ -1,0 +1,66 @@
+repos:
+  # ── General ──────────────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+
+  # ── Branch up-to-date with main ──────────────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: check-branch-up-to-date
+        name: Branch is up to date with origin/main
+        language: system
+        entry: bash .hooks/check-branch-up-to-date.sh
+        pass_filenames: false
+        always_run: true
+
+      # ── Backend: Python ─────────────────────────────────────────────────────
+      - id: ruff-format
+        name: Ruff format (backend)
+        language: system
+        entry: ruff format backend/
+        files: ^backend/.*\.py$
+        pass_filenames: false
+
+      - id: ruff-lint
+        name: Ruff lint (backend)
+        language: system
+        entry: ruff check --fix backend/
+        files: ^backend/.*\.py$
+        pass_filenames: false
+
+      - id: mypy
+        name: Mypy type check (backend)
+        language: system
+        entry: bash -c 'cd backend && mypy . --config-file pyproject.toml'
+        files: ^backend/.*\.py$
+        pass_filenames: false
+
+      # ── Frontend: TypeScript / React ────────────────────────────────────────
+      - id: eslint
+        name: ESLint (frontend)
+        language: system
+        entry: bash -c 'cd frontend/ml && npx eslint src/'
+        files: ^frontend/ml/src/.*\.(ts|tsx)$
+        pass_filenames: false
+
+      - id: prettier
+        name: Prettier format (frontend)
+        language: system
+        entry: bash -c 'cd frontend/ml && npx prettier --write src/'
+        files: ^frontend/ml/src/.*\.(ts|tsx|css)$
+        pass_filenames: false
+
+      - id: tsc
+        name: TypeScript type check (frontend)
+        language: system
+        entry: bash -c 'cd frontend/ml && npx tsc -p tsconfig.app.json'
+        files: ^frontend/ml/src/.*\.(ts|tsx)$
+        pass_filenames: false

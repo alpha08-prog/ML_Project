@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  # ── Backend checks ────────────────────────────────────────────────────────────
+  backend:
+    name: Backend (Python)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ruff and mypy
+        run: pip install ruff mypy
+
+      - name: Ruff format check
+        run: ruff format --check backend/
+
+      - name: Ruff lint
+        run: ruff check backend/
+
+      - name: Mypy type check
+        run: mypy backend/ --config-file backend/pyproject.toml
+
+  # ── Frontend checks ───────────────────────────────────────────────────────────
+  frontend:
+    name: Frontend (TypeScript)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/ml/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend/ml
+
+      - name: ESLint
+        run: npm run lint
+        working-directory: frontend/ml
+
+      - name: Prettier check
+        run: npm run format:check
+        working-directory: frontend/ml
+
+      - name: TypeScript type check
+        run: npm run type-check
+        working-directory: frontend/ml

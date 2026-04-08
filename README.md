@@ -47,7 +47,21 @@ cd frontend/ml
 npm install
 ```
 
-### 5. Train Models
+### 5. Pre-commit Hooks
+
+Pre-commit runs formatting, linting, and type checks automatically on every `git commit`.
+
+```bash
+brew install pre-commit       # install (once per machine)
+pre-commit install            # activate hooks for this repo (once per clone)
+```
+
+To run all checks manually without committing:
+```bash
+pre-commit run --all-files
+```
+
+### 6. Train Models
 
 ```bash
 python backend/train_models.py
@@ -55,7 +69,7 @@ python backend/train_models.py
 
 This will train all models and save them to the `models/` directory (~5-10 minutes).
 
-### 6. Start Backend
+### 7. Start Backend
 
 **Windows:**
 ```bash
@@ -75,7 +89,7 @@ python api.py
 
 Backend runs on `http://localhost:8000`
 
-### 7. Start Frontend
+### 8. Start Frontend
 
 ```bash
 cd frontend/ml
@@ -106,6 +120,11 @@ ML_Project/
 ├── models/                 # Trained models (generated, gitignored)
 ├── Data/                   # EEG dataset (gitignored)
 ├── download_data.py        # Script to fetch EEG data from PhysioNet
+├── .hooks/                 # Custom hook scripts (used by pre-commit)
+│   └── check-branch-up-to-date.sh
+├── .pre-commit-config.yaml # Pre-commit hook definitions
+├── .github/workflows/
+│   └── ci.yml              # GitHub Actions CI pipeline
 ├── .gitignore              # Git ignore rules
 ├── .gitattributes          # Git attributes
 └── README.md
@@ -176,10 +195,11 @@ All key instructions are consolidated here. The FastAPI docs are available at ru
 
 ## 🤝 Contributing
 
-1. Train models: `python backend/train_models.py`
-2. Start backend: `python backend/api.py`
-3. Start frontend: `cd frontend/ml && npm run dev`
-4. Make changes and test
+1. Install pre-commit hooks: `brew install pre-commit && pre-commit install`
+2. Train models: `python backend/train_models.py`
+3. Start backend: `python backend/api.py`
+4. Start frontend: `cd frontend/ml && npm run dev`
+5. Make changes and test — hooks run automatically on `git commit`
 
 ## 📄 License
 
