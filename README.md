@@ -4,34 +4,50 @@ A complete machine learning project for classifying EEG signals to determine men
 
 ## 🚀 Quick Start
 
-### 1. Environment & Dependencies
+### 1. Conda Environment
 
-**Recommended (Conda, Python 3.12):**
+Create the conda environment from the provided `environment.yml` (includes Python 3.12, NumPy, SciPy, PyTorch, and Poetry):
 ```bash
-# Install Miniconda (once), then in a new shell:
-conda create -n mlproj python=3.12 -y
+cd backend
+conda env create -f environment.yml
 conda activate mlproj
-python -m pip install -U pip setuptools wheel
-python -m pip install -r requirements.txt
 ```
 
-PyTorch is optional but required for CNN features. If you have an NVIDIA GPU, install via the official channel; otherwise install CPU-only. Example (choose one):
+**For GPU users (NVIDIA CUDA 12.4):**
 ```bash
-# CPU-only
-conda install -y -c pytorch pytorch torchvision torchaudio cpuonly
-
-# Or CUDA 12.1
-conda install -y pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
+cd backend
+conda env create -f environment-gpu.yml
+conda activate mlproj
 ```
 
-**Node.js (Frontend):**
+### 2. Install Python Packages (Poetry)
+
+With the conda environment active, install the remaining Python dependencies via Poetry:
+```bash
+cd backend
+poetry install
+```
+
+> **Note:** `poetry.toml` is configured with `virtualenvs.create = false`, so Poetry installs directly into the active conda environment.
+
+### 3. Download EEG Data
+
+The EEG dataset is not included in the repository. Download it from PhysioNet:
+```bash
+python download_data.py
+```
+
+This downloads ~170 MB of EDF files (72 files for 36 subjects) into `Data/eegmat/`.
+
+### 4. Frontend Setup
+
 Requires Node.js >= 20.19.0.
 ```bash
 cd frontend/ml
 npm install
 ```
 
-### 2. Train Models
+### 5. Train Models
 
 ```bash
 python backend/train_models.py
@@ -39,7 +55,7 @@ python backend/train_models.py
 
 This will train all models and save them to the `models/` directory (~5-10 minutes).
 
-### 3. Start Backend
+### 6. Start Backend
 
 **Windows:**
 ```bash
@@ -59,7 +75,7 @@ python api.py
 
 Backend runs on `http://localhost:8000`
 
-### 4. Start Frontend
+### 7. Start Frontend
 
 ```bash
 cd frontend/ml
@@ -74,7 +90,12 @@ Frontend runs on `http://localhost:5173`
 ML_Project/
 ├── backend/
 │   ├── api.py              # FastAPI backend server
-│   └── train_models.py     # Model training script
+│   ├── train_models.py     # Model training script
+│   ├── pyproject.toml      # Poetry dependencies
+│   ├── poetry.lock         # Poetry lock file
+│   ├── poetry.toml         # Poetry config (no virtualenv)
+│   ├── environment.yml     # Conda environment (CPU)
+│   └── environment-gpu.yml # Conda environment (GPU/CUDA)
 ├── frontend/ml/
 │   ├── src/
 │   │   ├── services/
@@ -84,7 +105,7 @@ ML_Project/
 │   └── package.json
 ├── models/                 # Trained models (generated, gitignored)
 ├── Data/                   # EEG dataset (gitignored)
-├── requirements.txt        # Python dependencies
+├── download_data.py        # Script to fetch EEG data from PhysioNet
 ├── .gitignore              # Git ignore rules
 ├── .gitattributes          # Git attributes
 └── README.md

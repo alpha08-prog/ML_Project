@@ -1,0 +1,33 @@
+[tool.poetry]
+package-mode = false
+
+[project]
+name = "backend"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "ibeginnernoob",email = "adheilgupta@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pyedflib (>=0.1.30)",
+    "mne (>=1.5.0)",
+    "xgboost (>=2.0.0)",
+    "seaborn (>=0.12.0)",
+    "umap-learn (>=0.5.4)",
+    "shap (>=0.42.0)",
+    "tqdm (>=4.65.0)",
+    "fastapi (>=0.104.0)",
+    "uvicorn[standard] (>=0.24.0)",
+    "python-multipart (>=0.0.6)",
+    "pandas (>=2.0)",
+    "matplotlib (>=3.7)",
+    "scikit-learn (>=1.3)",
+    "requests (>=2.19.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

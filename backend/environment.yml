@@ -1,0 +1,18 @@
+name: mlproj
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - numpy>=1.24,<2.0
+  - scipy>=1.10
+  - pytorch>=2.0
+  - torchaudio>=2.0
+  - torchvision>=0.15
+
+  # Packages that depend on torch — managed here to prevent poetry from pulling torch from PyPI
+  - captum>=0.6.0
+
+  - pip
+  - pip:
+      - poetry
