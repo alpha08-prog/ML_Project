@@ -1,22 +1,22 @@
-import type { ReactNode } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { Brain, BarChart3, LineChart, Zap, Info } from 'lucide-react'
-import ThemeToggle from './ThemeToggle'
+import type { ReactNode } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Brain, BarChart3, LineChart, Zap, Info } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
 interface LayoutProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const location = useLocation()
+  const location = useLocation();
 
   const NAV_ITEMS = [
-    { path: '/', label: 'Dashboard', icon: Brain },
-    { path: '/performance', label: 'Performance', icon: BarChart3 },
-    { path: '/visualization', label: 'Visualization', icon: LineChart },
-    { path: '/predictions', label: 'Predictions', icon: Zap },
-    { path: '/about', label: 'About', icon: Info },
-  ]
+    { path: "/", label: "Dashboard", icon: Brain },
+    { path: "/performance", label: "Performance", icon: BarChart3 },
+    { path: "/visualization", label: "Visualization", icon: LineChart },
+    { path: "/predictions", label: "Predictions", icon: Zap },
+    { path: "/about", label: "About", icon: Info },
+  ];
 
   return (
     <div className="layout">
@@ -32,7 +32,7 @@ export default function Layout({ children }: LayoutProps) {
                 <Link
                   key={path}
                   to={path}
-                  className={`nav-link ${location.pathname === path ? 'active' : ''}`}
+                  className={`nav-link ${location.pathname === path ? "active" : ""}`}
                 >
                   <Icon size={18} />
                   <span>{label}</span>
@@ -43,9 +43,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </div>
       </header>
-      <main className="main-content">
-        {children}
-      </main>
+      <main className="main-content">{children}</main>
     </div>
-  )
+  );
 }

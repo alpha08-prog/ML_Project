@@ -2,7 +2,7 @@
  * API Service for communicating with FastAPI backend
  */
 
-const API_BASE_URL = '';
+const API_BASE_URL = "";
 
 interface ClassDistribution {
   good: number;
@@ -40,7 +40,7 @@ interface PerformanceResponse {
 interface UMAPPoint {
   x: number;
   y: number;
-  type: 'real' | 'synthetic' | 'majority';
+  type: "real" | "synthetic" | "majority";
 }
 
 interface UMAPResponse {
@@ -93,7 +93,7 @@ class ApiService {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...options?.headers,
         },
       });
@@ -111,21 +111,21 @@ class ApiService {
 
   // Dashboard
   async getDashboard(): Promise<DashboardResponse> {
-    return this.request<DashboardResponse>('/api/dashboard');
+    return this.request<DashboardResponse>("/api/dashboard");
   }
 
   // Model Performance
   async getPerformance(): Promise<PerformanceResponse> {
-    return this.request<PerformanceResponse>('/api/performance');
+    return this.request<PerformanceResponse>("/api/performance");
   }
 
   // Visualizations
   async getUMAP(): Promise<UMAPResponse> {
-    return this.request<UMAPResponse>('/api/visualization/umap');
+    return this.request<UMAPResponse>("/api/visualization/umap");
   }
 
   async getChannelImportance(): Promise<ChannelImportanceResponse> {
-    return this.request<ChannelImportanceResponse>('/api/visualization/channel-importance');
+    return this.request<ChannelImportanceResponse>("/api/visualization/channel-importance");
   }
 
   async getEEGSignal(channel: number): Promise<EEGSignalResponse> {
@@ -133,14 +133,14 @@ class ApiService {
   }
 
   // Predictions
-  async predict(file: File, modelType: 'rf' | 'cnn' = 'cnn'): Promise<PredictionResponse> {
+  async predict(file: File, modelType: "rf" | "cnn" = "cnn"): Promise<PredictionResponse> {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('model_type', modelType);
+    formData.append("file", file);
+    formData.append("model_type", modelType);
 
     try {
       const response = await fetch(`${this.baseUrl}/api/predict?model_type=${modelType}`, {
-        method: 'POST',
+        method: "POST",
         body: formData,
       });
 
@@ -148,21 +148,21 @@ class ApiService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json() as PredictionResponse;
+      return (await response.json()) as PredictionResponse;
     } catch (error) {
-      console.error('Prediction failed', error);
+      console.error("Prediction failed", error);
       throw error;
     }
   }
 
   // Dataset Info
   async getDatasetInfo(): Promise<DatasetInfo> {
-    return this.request<DatasetInfo>('/api/dataset/info');
+    return this.request<DatasetInfo>("/api/dataset/info");
   }
 
   // Health check
   async healthCheck(): Promise<HealthResponse> {
-    return this.request<HealthResponse>('/api/health');
+    return this.request<HealthResponse>("/api/health");
   }
 }
 

@@ -1,46 +1,74 @@
-import { useState } from 'react'
-import { Upload, FileText, CheckCircle, XCircle, Loader } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
-import apiService from '../services/api'
+import { useState } from "react";
+import { Upload, FileText, CheckCircle, XCircle, Loader } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
+import apiService from "../services/api";
 
 export default function Predictions() {
-  const [selectedModel, setSelectedModel] = useState<'rf' | 'cnn'>('cnn')
-  const [file, setFile] = useState<File | null>(null)
-  const [predicting, setPredicting] = useState(false)
+  const [selectedModel, setSelectedModel] = useState<"rf" | "cnn">("cnn");
+  const [file, setFile] = useState<File | null>(null);
+  const [predicting, setPredicting] = useState(false);
   const [prediction, setPrediction] = useState<{
-    class: string
-    probability: number
-    confidence: string
-  } | null>(null)
+    class: string;
+    probability: number;
+    confidence: string;
+  } | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0])
-      setPrediction(null)
+      setFile(e.target.files[0]);
+      setPrediction(null);
     }
-  }
+  };
 
   const handlePredict = async () => {
-    if (!file) return
+    if (!file) return;
 
-    setPredicting(true)
+    setPredicting(true);
     try {
-      const result = await apiService.predict(file, selectedModel)
-      setPrediction(result)
+      const result = await apiService.predict(file, selectedModel);
+      setPrediction(result);
     } catch (error) {
-      console.error('Prediction error:', error)
-      alert('Failed to make prediction. Make sure the backend is running and the file is valid.')
+      console.error("Prediction error:", error);
+      alert("Failed to make prediction. Make sure the backend is running and the file is valid.");
     } finally {
-      setPredicting(false)
+      setPredicting(false);
     }
-  }
+  };
 
   const SAMPLE_PREDICTIONS = [
-    { subject: 'Subject 01', model: 'CNN Augmented', prediction: 'Good Quality', probability: 0.87, actual: 'Good Quality', correct: true },
-    { subject: 'Subject 04', model: 'CNN Augmented', prediction: 'Bad Quality', probability: 0.72, actual: 'Bad Quality', correct: true },
-    { subject: 'Subject 07', model: 'RF Augmented', prediction: 'Good Quality', probability: 0.81, actual: 'Good Quality', correct: true },
-    { subject: 'Subject 10', model: 'CNN Augmented', prediction: 'Bad Quality', probability: 0.68, actual: 'Bad Quality', correct: true },
-  ]
+    {
+      subject: "Subject 01",
+      model: "CNN Augmented",
+      prediction: "Good Quality",
+      probability: 0.87,
+      actual: "Good Quality",
+      correct: true,
+    },
+    {
+      subject: "Subject 04",
+      model: "CNN Augmented",
+      prediction: "Bad Quality",
+      probability: 0.72,
+      actual: "Bad Quality",
+      correct: true,
+    },
+    {
+      subject: "Subject 07",
+      model: "RF Augmented",
+      prediction: "Good Quality",
+      probability: 0.81,
+      actual: "Good Quality",
+      correct: true,
+    },
+    {
+      subject: "Subject 10",
+      model: "CNN Augmented",
+      prediction: "Bad Quality",
+      probability: 0.68,
+      actual: "Bad Quality",
+      correct: true,
+    },
+  ];
 
   return (
     <div className="predictions">
@@ -60,8 +88,8 @@ export default function Predictions() {
                   <input
                     type="radio"
                     value="cnn"
-                    checked={selectedModel === 'cnn'}
-                    onChange={(e) => setSelectedModel(e.target.value as 'rf' | 'cnn')}
+                    checked={selectedModel === "cnn"}
+                    onChange={(e) => setSelectedModel(e.target.value as "rf" | "cnn")}
                   />
                   <span>CNN Augmented</span>
                 </label>
@@ -69,8 +97,8 @@ export default function Predictions() {
                   <input
                     type="radio"
                     value="rf"
-                    checked={selectedModel === 'rf'}
-                    onChange={(e) => setSelectedModel(e.target.value as 'rf' | 'cnn')}
+                    checked={selectedModel === "rf"}
+                    onChange={(e) => setSelectedModel(e.target.value as "rf" | "cnn")}
                   />
                   <span>Random Forest Augmented</span>
                 </label>
@@ -112,7 +140,7 @@ export default function Predictions() {
                   Predicting...
                 </>
               ) : (
-                'Predict'
+                "Predict"
               )}
             </button>
           </div>
@@ -120,9 +148,11 @@ export default function Predictions() {
           {prediction && (
             <div className="prediction-result">
               <h4>Prediction Result</h4>
-              <div className={`result-card ${prediction.class.includes('Good') ? 'result-good' : 'result-bad'}`}>
+              <div
+                className={`result-card ${prediction.class.includes("Good") ? "result-good" : "result-bad"}`}
+              >
                 <div className="result-header">
-                  {prediction.class.includes('Good') ? (
+                  {prediction.class.includes("Good") ? (
                     <CheckCircle size={32} className="result-icon result-good" />
                   ) : (
                     <XCircle size={32} className="result-icon result-bad" />
@@ -139,7 +169,9 @@ export default function Predictions() {
                       style={{ width: `${prediction.probability * 100}%` }}
                     />
                   </div>
-                  <span className="probability-value">{(prediction.probability * 100).toFixed(1)}%</span>
+                  <span className="probability-value">
+                    {(prediction.probability * 100).toFixed(1)}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -162,7 +194,9 @@ export default function Predictions() {
                 <div className="prediction-item-details">
                   <div className="prediction-model">{pred.model}</div>
                   <div className="prediction-info">
-                    <span className={`prediction-label ${pred.prediction.includes('Good') ? 'label-good' : 'label-bad'}`}>
+                    <span
+                      className={`prediction-label ${pred.prediction.includes("Good") ? "label-good" : "label-bad"}`}
+                    >
                       {pred.prediction}
                     </span>
                     <span className="prediction-prob">{(pred.probability * 100).toFixed(0)}%</span>
@@ -177,32 +211,36 @@ export default function Predictions() {
 
       <div className="mt-lg grid grid-2">
         <Card>
-            <CardHeader><CardTitle>Model Information - CNN Augmented</CardTitle></CardHeader>
-            <CardContent>
-                <div className="model-info-item">
-                    <ul>
-                        <li>Accuracy: 88%</li>
-                        <li>ROC-AUC: 0.86</li>
-                        <li>F1-Score: 0.85</li>
-                        <li>Input: (Channels, Time) - (23, 128)</li>
-                    </ul>
-                </div>
-            </CardContent>
+          <CardHeader>
+            <CardTitle>Model Information - CNN Augmented</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="model-info-item">
+              <ul>
+                <li>Accuracy: 88%</li>
+                <li>ROC-AUC: 0.86</li>
+                <li>F1-Score: 0.85</li>
+                <li>Input: (Channels, Time) - (23, 128)</li>
+              </ul>
+            </div>
+          </CardContent>
         </Card>
         <Card>
-            <CardHeader><CardTitle>Model Information - RF Augmented</CardTitle></CardHeader>
-            <CardContent>
-                <div className="model-info-item">
-                    <ul>
-                        <li>Accuracy: 85%</li>
-                        <li>ROC-AUC: 0.83</li>
-                        <li>F1-Score: 0.81</li>
-                        <li>Input: Flattened features (2944)</li>
-                    </ul>
-                </div>
-            </CardContent>
+          <CardHeader>
+            <CardTitle>Model Information - RF Augmented</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="model-info-item">
+              <ul>
+                <li>Accuracy: 85%</li>
+                <li>ROC-AUC: 0.83</li>
+                <li>F1-Score: 0.81</li>
+                <li>Input: Flattened features (2944)</li>
+              </ul>
+            </div>
+          </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }
