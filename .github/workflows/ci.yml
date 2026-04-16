@@ -2,14 +2,15 @@ name: CI
 
 on:
   push:
-    branches: ["*"]
   pull_request:
-    branches: ["*"]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  # ── Backend checks ────────────────────────────────────────────────────────────
   backend:
-    name: Backend (Python)
+    name: Backend checks
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +20,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install ruff and mypy
+      - name: Install linting tools
         run: pip install ruff mypy
 
       - name: Ruff format check
@@ -31,9 +32,8 @@ jobs:
       - name: Mypy type check
         run: mypy backend/ --config-file backend/pyproject.toml
 
-  # ── Frontend checks ───────────────────────────────────────────────────────────
   frontend:
-    name: Frontend (TypeScript)
+    name: Frontend checks
     runs-on: ubuntu-latest
 
     steps:
@@ -41,8 +41,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: "20.19.0"
+          cache: npm
           cache-dependency-path: frontend/ml/package-lock.json
 
       - name: Install dependencies
@@ -60,3 +60,23 @@ jobs:
       - name: TypeScript type check
         run: npm run type-check
         working-directory: frontend/ml
+
+      - name: Production build
+        run: npm run build
+        working-directory: frontend/ml
+
+  docker-config:
+    name: Compose validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate development compose file
+        run: docker compose -f docker-compose.yml config
+
+      - name: Validate production compose file
+        env:
+          BACKEND_IMAGE: ghcr.io/example/ml-project-backend:latest
+          FRONTEND_IMAGE: ghcr.io/example/ml-project-frontend:latest
+        run: docker compose -f docker-compose.prod.yml config

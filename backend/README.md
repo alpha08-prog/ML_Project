@@ -1,85 +1,52 @@
 # Backend API
 
-FastAPI backend for the EEG Classification project.
+FastAPI backend for the EEG classification project.
 
-## Setup
+## Local setup
 
-1. Install dependencies:
 ```bash
-python -m pip install -r ../requirements.txt
-```
-
-2. Train models (first time only):
-```bash
-python train_models.py
-```
-
-This will:
-- Load and preprocess EEG data
-- Train Random Forest (baseline and augmented)
-- Train CNN (baseline and augmented)
-- Save all models to `models/` directory
-
-3. Start the API server:
-```bash
+cd backend
+conda env create -f environment.yml
+conda activate mlproj
+poetry install
 python api.py
 ```
 
-Or using uvicorn directly:
+The API is served on `http://localhost:8000`.
+
+## Training flow
+
+The API expects trained artifacts inside `../models/`. Generate them with:
+
 ```bash
-uvicorn api:app --reload --host 0.0.0.0 --port 8000
+python ../download_data.py
+python train_models.py
 ```
 
-The API will be available at `http://localhost:8000`
+If model files are missing, the API still starts, but most endpoints return `503` until training is completed.
 
-## API Endpoints
+## Docker behavior
 
-### Health & Info
-- `GET /` - API info
-- `GET /api/health` - Health check
-- `GET /api/dataset/info` - Dataset information
+The container entrypoint supports two modes:
 
-### Dashboard
-- `GET /api/dashboard` - Dashboard overview metrics
+- `AUTO_BOOTSTRAP=true`: download EEG data if needed, train models, then start the API
+- `AUTO_BOOTSTRAP=false`: skip training and just start the API
 
-### Model Performance
-- `GET /api/performance` - All model performance metrics
+Environment variables:
 
-### Visualizations
-- `GET /api/visualization/umap` - UMAP embedding data
-- `GET /api/visualization/channel-importance` - Channel importance analysis
-- `GET /api/visualization/eeg-signal/{channel}` - Sample EEG signal for a channel
+- `AUTO_BOOTSTRAP` default `false`
+- `HOST` default `0.0.0.0`
+- `PORT` default `8000`
 
-### Predictions
-- `POST /api/predict` - Make prediction on uploaded EDF file
-  - Parameters:
-    - `file`: EDF file (multipart/form-data)
-    - `model_type`: "rf" or "cnn" (query parameter)
+## Main endpoints
 
-## API Documentation
+- `GET /api/health`
+- `GET /api/dashboard`
+- `GET /api/performance`
+- `GET /api/visualization/umap`
+- `GET /api/visualization/channel-importance`
+- `GET /api/visualization/eeg-signal/{channel}`
+- `GET /api/dataset/info`
+- `POST /api/predict`
 
-Once the server is running, visit:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-
-## Model Files
-
-After training, the following files will be created in `models/`:
-
-- `rf_baseline.pkl` - Random Forest baseline model
-- `rf_augmented.pkl` - Random Forest augmented model
-- `cnn_baseline.pt` - CNN baseline model weights
-- `cnn_augmented.pt` - CNN augmented model weights
-- `cnn_baseline_config.pkl` - CNN baseline configuration
-- `cnn_augmented_config.pkl` - CNN augmented configuration
-- `*_metrics.pkl` - Performance metrics for each model
-- `X_test.npy`, `y_test.npy` - Test dataset
-- `X_train.npy`, `y_train.npy` - Training dataset
-- `dataset_info.pkl` - Dataset metadata
-
-## Notes
-
-- Models are loaded on API startup
-- First request may be slower as models are loaded into memory
-- For production, consider using a model serving framework or caching
-
+Interactive docs are available at `/docs` and `/redoc`.
