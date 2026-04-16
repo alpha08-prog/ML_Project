@@ -1,19 +1,22 @@
-"""
-Model Training Script
-"""
+"""Model training script."""
 
 import pickle
-import pyedflib
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
+import pyedflib
 import scipy.signal as sps
-from tqdm import tqdm
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
-    roc_auc_score, average_precision_score,
-    precision_score, recall_score, f1_score
+    average_precision_score,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
 )
+from sklearn.model_selection import train_test_split
+from tqdm import tqdm
 
 # -----------------------------
 # PyTorch (optional)
@@ -24,6 +27,7 @@ try:
     import torch.nn as nn
     import torch.optim as optim
     from torch.utils.data import DataLoader, TensorDataset
+
     TORCH_AVAILABLE = True
 except Exception as e:
     print(f"Warning: PyTorch not available: {e}")
@@ -31,13 +35,12 @@ except Exception as e:
 # -----------------------------
 # Paths
 # -----------------------------
-from pathlib import Path
-
 PROJECT_ROOT = Path(__file__).parent.parent
 DATA_FOLDER = PROJECT_ROOT / "Data" / "eegmat"
 INFO_CSV = DATA_FOLDER / "subject-info.csv"
 MODELS_DIR = PROJECT_ROOT / "models"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
+
 
 # -----------------------------
 # Utils
@@ -52,36 +55,46 @@ def read_edf(file_path):
     f.close()
     return signals
 
+
 def create_windows(signal, window_size=512, step=256):
-    return np.array([
-        signal[i:i + window_size]
-        for i in range(0, signal.shape[0] - window_size, step)
-    ])
+    return np.array(
+        [
+            signal[i : i + window_size]
+            for i in range(0, signal.shape[0] - window_size, step)
+        ]
+    )
+
 
 def downsample_window(window, orig_fs=512, target_fs=128):
     ratio = orig_fs // target_fs
-    return np.array([
-        sps.decimate(window[:, ch], ratio, zero_phase=True)
-        for ch in range(window.shape[1])
-    ]).T
+    return np.array(
+        [
+            sps.decimate(window[:, ch], ratio, zero_phase=True)
+            for ch in range(window.shape[1])
+        ]
+    ).T
+
 
 def flatten_windows(X):
     return X.reshape(X.shape[0], -1)
 
+
 def metrics(y_true, probs, preds):
     return {
-        'accuracy': float((y_true == preds).mean()),
-        'roc_auc': float(roc_auc_score(y_true, probs)),
-        'pr_auc': float(average_precision_score(y_true, probs)),
-        'precision': float(precision_score(y_true, preds, zero_division=0)),
-        'recall': float(recall_score(y_true, preds, zero_division=0)),
-        'f1': float(f1_score(y_true, preds, zero_division=0)),
+        "accuracy": float((y_true == preds).mean()),
+        "roc_auc": float(roc_auc_score(y_true, probs)),
+        "pr_auc": float(average_precision_score(y_true, probs)),
+        "precision": float(precision_score(y_true, preds, zero_division=0)),
+        "recall": float(recall_score(y_true, preds, zero_division=0)),
+        "f1": float(f1_score(y_true, preds, zero_division=0)),
     }
+
 
 # -----------------------------
 # CNN
 # -----------------------------
 if TORCH_AVAILABLE:
+
     class Simple1DCNN(nn.Module):
         def __init__(self, in_ch):
             super().__init__()
@@ -95,7 +108,7 @@ if TORCH_AVAILABLE:
                 nn.Flatten(),
                 nn.Linear(64, 32),
                 nn.ReLU(),
-                nn.Linear(32, 1)
+                nn.Linear(32, 1),
             )
 
         def forward(self, x):
@@ -135,6 +148,7 @@ if TORCH_AVAILABLE:
         preds = (ps >= 0.5).astype(int)
         return metrics(ys, ps, preds)
 
+
 # -----------------------------
 # MAIN
 # -----------------------------
@@ -164,10 +178,10 @@ def main():
 
     print("\n[2/6] Windowing...")
     windows, labels = [], []
-    for s, l in zip(X, y):
-        for w in create_windows(s):
+    for signal, label_value in zip(X, y):
+        for w in create_windows(signal):
             windows.append(w)
-            labels.append(l)
+            labels.append(label_value)
 
     windows = np.array(windows)
     labels = np.array(labels)
@@ -195,7 +209,7 @@ def main():
     with open(MODELS_DIR / "rf_baseline.pkl", "wb") as f:
         pickle.dump(rf, f)
 
-    print("RF Baseline Accuracy:", metrics_rf['accuracy'])
+    print("RF Baseline Accuracy:", metrics_rf["accuracy"])
 
     print("\n[5/6] Augmentation...")
     X_min = X_train[y_train == 0]
@@ -221,7 +235,6 @@ def main():
 
     with open(MODELS_DIR / "rf_augmented_metrics.pkl", "wb") as f:
         pickle.dump(metrics_rf_aug, f)
-    
 
     with open(MODELS_DIR / "rf_augmented.pkl", "wb") as f:
         pickle.dump(rf_aug, f)
@@ -233,7 +246,7 @@ def main():
 
         # --- Baseline CNN ---
         train_loader = prepare_loader(X_train, y_train)
-        test_loader  = prepare_loader(X_test,  y_test,  shuffle=False)
+        test_loader = prepare_loader(X_test, y_test, shuffle=False)
 
         cnn_baseline = Simple1DCNN(X_train.shape[2])
         cnn_baseline = train_model(cnn_baseline, train_loader, device=device)
@@ -271,16 +284,13 @@ def main():
     # -------------------------
     dataset_info = {
         "total_subjects": len(X),
-        "class_distribution": {
-            "good": int(np.sum(y == 1)),
-            "bad": int(np.sum(y == 0))
-        },
+        "class_distribution": {"good": int(np.sum(y == 1)), "bad": int(np.sum(y == 0))},
         "total_windows": len(windows),
         "train_size": len(X_train),
         "test_size": len(X_test),
         "synthetic_samples": len(synthetic),
         "channels": X_train.shape[2],
-        "sequence_length": X_train.shape[1]
+        "sequence_length": X_train.shape[1],
     }
 
     with open(MODELS_DIR / "dataset_info.pkl", "wb") as f:
@@ -292,6 +302,7 @@ def main():
     np.save(MODELS_DIR / "y_train.npy", y_train)
 
     print("\n✅ Training complete")
+
 
 if __name__ == "__main__":
     main()

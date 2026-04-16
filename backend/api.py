@@ -1,508 +1,484 @@
-"""
-FastAPI Backend for EEG Classification Project
-"""
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-import numpy as np
+"""FastAPI backend for the EEG classification project."""
+
+from __future__ import annotations
+
 import pickle
+import traceback
+from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any, cast
+
+import numpy as np
 import pyedflib
-import scipy.signal as sps
 import umap
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 
-# Try to import PyTorch, but handle gracefully if it fails
+import train_models as model_utils
+
 TORCH_AVAILABLE = False
+torch: Any = None
+
 try:
-    import torch
-    import torch.nn as nn
-    TORCH_AVAILABLE = True
-except Exception as e:
-    print(f"Warning: PyTorch not available: {e}")
+    import torch as torch_module
+except Exception as exc:
+    print(f"Warning: PyTorch not available: {exc}")
     print("CNN models will not be available, but Random Forest models will work.")
-    # Create dummy classes for type hints
-    class nn:
-        class Module:
-            pass
-
-# Import model definitions
-import sys
-sys.path.append(str(Path(__file__).parent))
-
-# Only import CNN-related functions if torch is available
-if TORCH_AVAILABLE:
-    from train_models import Simple1DCNN, downsample_window, create_windows, flatten_windows
 else:
-    # Create dummy functions
-    def downsample_window(window, orig_fs=512, target_fs=128):
-        ratio = orig_fs // target_fs
-        return np.array([
-            sps.decimate(window[:, ch], ratio, zero_phase=True)
-            for ch in range(window.shape[1])
-        ]).T
-    
-    def create_windows(signal, window_size=512, step=256):
-        windows = []
-        for i in range(0, signal.shape[0] - window_size, step):
-            windows.append(signal[i:i+window_size])
-        return np.array(windows)
-    
-    def flatten_windows(X):
-        return X.reshape(X.shape[0], -1)
-    
-    class Simple1DCNN:
-        pass
+    torch = torch_module
+    TORCH_AVAILABLE = True
 
-# Paths - relative to project root (go up one level from backend/)
+Simple1DCNN = getattr(model_utils, "Simple1DCNN", None)
+create_windows = model_utils.create_windows
+downsample_window = model_utils.downsample_window
+flatten_windows = model_utils.flatten_windows
+
 PROJECT_ROOT = Path(__file__).parent.parent
 MODELS_DIR = PROJECT_ROOT / "models"
-DATA_FOLDER = PROJECT_ROOT / "Data" / "eegmat"
 
-# Global variables for loaded models
 models_loaded = False
-rf_baseline = None
-rf_augmented = None
-cnn_baseline = None
-cnn_augmented = None
-dataset_info = None
-X_test = None
-y_test = None
-X_train = None
-y_train = None
+rf_baseline: Any | None = None
+rf_augmented: Any | None = None
+cnn_baseline: Any | None = None
+cnn_augmented: Any | None = None
+dataset_info: dict[str, Any] | None = None
+x_test: Any | None = None
+y_test: Any | None = None
+x_train: Any | None = None
+y_train: Any | None = None
 
-def load_models():
-    """Load all trained models"""
-    global rf_baseline, rf_augmented, cnn_baseline, cnn_augmented
-    global dataset_info, X_test, y_test, X_train, y_train, models_loaded
-    
+
+def load_pickle(path: Path) -> Any:
+    with path.open("rb") as file:
+        return pickle.load(file)
+
+
+def load_models() -> None:
+    """Load trained artifacts into memory."""
+    global cnn_augmented, cnn_baseline, dataset_info, models_loaded
+    global rf_augmented, rf_baseline, x_test, x_train, y_test, y_train
+
     if models_loaded:
         return
-    
-    # Check if models directory exists
+
     if not MODELS_DIR.exists():
-        error_msg = f"""
-        ⚠️  Models directory not found: {MODELS_DIR}
-        
-        Please train the models first by running:
-            python backend/train_models.py
-        
-        This will create the models directory and train all required models.
-        """
-        print(error_msg)
-        raise FileNotFoundError(f"Models directory not found. Please run: python backend/train_models.py")
-    
-    # Check if dataset_info exists
+        raise FileNotFoundError(
+            "Models directory not found. Please run: python backend/train_models.py"
+        )
+
     dataset_info_path = MODELS_DIR / "dataset_info.pkl"
     if not dataset_info_path.exists():
-        error_msg = f"""
-        ⚠️  Models not trained yet!
-        
-        The file {dataset_info_path} does not exist.
-        
-        Please train the models first by running:
-            python backend/train_models.py
-        
-        This will:
-        1. Load and preprocess the EEG data
-        2. Train Random Forest models (baseline and augmented)
-        3. Train CNN models (baseline and augmented)
-        4. Save all models to {MODELS_DIR}
-        
-        Training takes approximately 5-10 minutes.
-        """
-        print(error_msg)
-        raise FileNotFoundError(f"Models not trained. Please run: python backend/train_models.py")
-    
+        raise FileNotFoundError(
+            "Models not trained. Please run: python backend/train_models.py"
+        )
+
     try:
-        # Load dataset info
-        with open(dataset_info_path, "rb") as f:
-            dataset_info = pickle.load(f)
-        
-        # Load test data
-        X_test = np.load(MODELS_DIR / "X_test.npy")
+        dataset_info = cast(dict[str, Any], load_pickle(dataset_info_path))
+        x_test = np.load(MODELS_DIR / "X_test.npy")
         y_test = np.load(MODELS_DIR / "y_test.npy")
-        X_train = np.load(MODELS_DIR / "X_train.npy")
+        x_train = np.load(MODELS_DIR / "X_train.npy")
         y_train = np.load(MODELS_DIR / "y_train.npy")
-        
-        # Load Random Forest models
+
         rf_baseline_path = MODELS_DIR / "rf_baseline.pkl"
         rf_augmented_path = MODELS_DIR / "rf_augmented.pkl"
-        
         if not rf_baseline_path.exists() or not rf_augmented_path.exists():
-            raise FileNotFoundError("Random Forest models not found. Please train models first.")
-        
-        with open(rf_baseline_path, "rb") as f:
-            rf_baseline = pickle.load(f)
-        with open(rf_augmented_path, "rb") as f:
-            rf_augmented = pickle.load(f)
-        
-        # Load CNN models only if PyTorch is available
-        if TORCH_AVAILABLE:
+            raise FileNotFoundError(
+                "Random Forest models not found. Please train models first."
+            )
+
+        rf_baseline = load_pickle(rf_baseline_path)
+        rf_augmented = load_pickle(rf_augmented_path)
+
+        cnn_baseline = None
+        cnn_augmented = None
+        if TORCH_AVAILABLE and Simple1DCNN is not None:
             try:
-                cnn_baseline_pt = MODELS_DIR / "cnn_baseline.pt"
-                cnn_augmented_pt = MODELS_DIR / "cnn_augmented.pt"
-                
-                if cnn_baseline_pt.exists() and cnn_augmented_pt.exists():
-                    cnn_config = pickle.load(open(MODELS_DIR / "cnn_baseline_config.pkl", "rb"))
-                    cnn_baseline = Simple1DCNN(in_ch=cnn_config["in_ch"])
-                    cnn_baseline.load_state_dict(torch.load(cnn_baseline_pt, map_location="cpu"))
+                cnn_baseline_path = MODELS_DIR / "cnn_baseline.pt"
+                cnn_augmented_path = MODELS_DIR / "cnn_augmented.pt"
+
+                if cnn_baseline_path.exists() and cnn_augmented_path.exists():
+                    cnn_baseline_config = load_pickle(
+                        MODELS_DIR / "cnn_baseline_config.pkl"
+                    )
+                    cnn_baseline = Simple1DCNN(in_ch=cnn_baseline_config["in_ch"])
+                    cnn_baseline.load_state_dict(
+                        torch.load(cnn_baseline_path, map_location="cpu")
+                    )
                     cnn_baseline.eval()
-                    
-                    cnn_config_aug = pickle.load(open(MODELS_DIR / "cnn_augmented_config.pkl", "rb"))
-                    cnn_augmented = Simple1DCNN(in_ch=cnn_config_aug["in_ch"])
-                    cnn_augmented.load_state_dict(torch.load(cnn_augmented_pt, map_location="cpu"))
+
+                    cnn_augmented_config = load_pickle(
+                        MODELS_DIR / "cnn_augmented_config.pkl"
+                    )
+                    cnn_augmented = Simple1DCNN(in_ch=cnn_augmented_config["in_ch"])
+                    cnn_augmented.load_state_dict(
+                        torch.load(cnn_augmented_path, map_location="cpu")
+                    )
                     cnn_augmented.eval()
                     print("CNN models loaded successfully")
                 else:
-                    print("Warning: CNN model files not found. CNN predictions will not be available.")
-                    cnn_baseline = None
-                    cnn_augmented = None
-            except Exception as e:
-                print(f"Warning: Could not load CNN models: {e}")
-                print("CNN predictions will not be available, but Random Forest will work.")
+                    print(
+                        "Warning: CNN model files not found. "
+                        "CNN predictions will not be available."
+                    )
+            except Exception as exc:
+                print(f"Warning: Could not load CNN models: {exc}")
+                print(
+                    "CNN predictions will not be available, "
+                    "but Random Forest will work."
+                )
                 cnn_baseline = None
                 cnn_augmented = None
-        else:
+        elif not TORCH_AVAILABLE:
             print("PyTorch not available - CNN models will not be loaded")
-            cnn_baseline = None
-            cnn_augmented = None
-        
+
         models_loaded = True
-        print("✓ Models loaded successfully")
-        print(f"  Random Forest: Available")
-        print(f"  CNN: {'Available' if (cnn_baseline and cnn_augmented) else 'Not Available'}")
-    except FileNotFoundError as e:
-        print(f"\n❌ Error: {e}\n")
+        cnn_status = (
+            "Available"
+            if cnn_baseline is not None and cnn_augmented is not None
+            else "Not Available"
+        )
+        print("Models loaded successfully")
+        print("  Random Forest: Available")
+        print(f"  CNN: {cnn_status}")
+    except FileNotFoundError:
         raise
-    except Exception as e:
-        print(f"❌ Error loading models: {e}")
-        import traceback
+    except Exception as exc:
+        print(f"Error loading models: {exc}")
         traceback.print_exc()
         raise
 
-from contextlib import asynccontextmanager
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Lifespan event handler"""
-    # Startup
+def require_models_loaded() -> None:
+    if models_loaded:
+        return
+
     try:
         load_models()
-    except FileNotFoundError as e:
-        print("\n" + "="*60)
-        print("⚠️  MODELS NOT TRAINED YET")
-        print("="*60)
-        print("\nTo fix this, run the training script:")
-        print("  python backend/train_models.py\n")
-        print("The API will start but most endpoints will return errors")
-        print("until models are trained.\n")
-        print("="*60 + "\n")
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+def get_dataset_info() -> dict[str, Any]:
+    require_models_loaded()
+    assert dataset_info is not None
+    return dataset_info
+
+
+def get_train_data() -> tuple[Any, Any]:
+    require_models_loaded()
+    assert x_train is not None
+    assert y_train is not None
+    return x_train, y_train
+
+
+def get_test_data() -> tuple[Any, Any]:
+    require_models_loaded()
+    assert x_test is not None
+    assert y_test is not None
+    return x_test, y_test
+
+
+def get_rf_augmented_model() -> Any:
+    require_models_loaded()
+    assert rf_augmented is not None
+    return rf_augmented
+
+
+def get_cnn_metric_bundle() -> tuple[Any, Any] | None:
+    if cnn_baseline is None or cnn_augmented is None:
+        return None
+
+    try:
+        cnn_metrics = load_pickle(MODELS_DIR / "cnn_baseline_metrics.pkl")
+        cnn_augmented_metrics = load_pickle(MODELS_DIR / "cnn_augmented_metrics.pkl")
+    except Exception as exc:
+        print(f"Warning: Could not load CNN metrics: {exc}")
+        return None
+
+    return cnn_metrics, cnn_augmented_metrics
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Try to warm models on startup without blocking the API from booting."""
+    try:
+        load_models()
+    except FileNotFoundError:
+        print("=" * 60)
+        print("MODELS NOT TRAINED YET")
+        print("Run: python backend/train_models.py")
+        print("Most endpoints will return 503 until models are available.")
+        print("=" * 60)
     yield
-    # Shutdown (if needed)
 
-app = FastAPI(
-    title="EEG Classification API", 
-    version="1.0.0",
-    lifespan=lifespan
-)
 
-# CORS middleware
+app = FastAPI(title="EEG Classification API", version="1.0.0", lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Vite default port
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 @app.get("/")
-async def root():
+async def root() -> dict[str, str]:
     return {"message": "EEG Classification API", "status": "running"}
 
+
 @app.get("/api/health")
-async def health():
+async def health() -> dict[str, Any]:
     return {
-        "status": "healthy", 
+        "status": "healthy",
         "models_loaded": models_loaded,
         "torch_available": TORCH_AVAILABLE,
-        "cnn_available": cnn_baseline is not None and cnn_augmented is not None if models_loaded else False,
-        "rf_available": rf_baseline is not None and rf_augmented is not None if models_loaded else False
+        "cnn_available": (
+            models_loaded and cnn_baseline is not None and cnn_augmented is not None
+        ),
+        "rf_available": (
+            models_loaded and rf_baseline is not None and rf_augmented is not None
+        ),
     }
+
 
 @app.get("/api/dashboard")
-async def get_dashboard():
-    """Get dashboard overview data"""
-    if not models_loaded:
-        try:
-            load_models()
-        except FileNotFoundError:
-            raise HTTPException(
-                status_code=503,
-                detail="Models not trained yet. Please run: python backend/train_models.py"
-            )
-    
-    # Load metrics
-    with open(MODELS_DIR / "rf_baseline_metrics.pkl", "rb") as f:
-        rf_metrics = pickle.load(f)
-    with open(MODELS_DIR / "rf_augmented_metrics.pkl", "rb") as f:
-        rf_aug_metrics = pickle.load(f)
-    
-    accuracies = [rf_metrics['accuracy'], rf_aug_metrics['accuracy']]
-    
-    # Try to load CNN metrics if available
-    if cnn_baseline is not None and cnn_augmented is not None:
-        try:
-            with open(MODELS_DIR / "cnn_baseline_metrics.pkl", "rb") as f:
-                cnn_metrics = pickle.load(f)
-            with open(MODELS_DIR / "cnn_augmented_metrics.pkl", "rb") as f:
-                cnn_aug_metrics = pickle.load(f)
-            accuracies.extend([cnn_metrics['accuracy'], cnn_aug_metrics['accuracy']])
-        except:
-            pass
-    
-    best_accuracy = max(accuracies)
-    
+async def get_dashboard() -> dict[str, Any]:
+    info = get_dataset_info()
+    rf_metrics = load_pickle(MODELS_DIR / "rf_baseline_metrics.pkl")
+    rf_augmented_metrics = load_pickle(MODELS_DIR / "rf_augmented_metrics.pkl")
+
+    accuracies = [
+        rf_metrics["accuracy"],
+        rf_augmented_metrics["accuracy"],
+    ]
+    cnn_metric_bundle = get_cnn_metric_bundle()
+    if cnn_metric_bundle is not None:
+        cnn_metrics, cnn_augmented_metrics = cnn_metric_bundle
+        accuracies.extend(
+            [
+                cnn_metrics["accuracy"],
+                cnn_augmented_metrics["accuracy"],
+            ]
+        )
+
     return {
-        "total_subjects": dataset_info["total_subjects"],
-        "best_accuracy": best_accuracy,
-        "synthetic_samples": dataset_info["synthetic_samples"],
-        "class_distribution": dataset_info["class_distribution"],
-        "model_status": "trained"
+        "total_subjects": info["total_subjects"],
+        "best_accuracy": max(accuracies),
+        "synthetic_samples": info["synthetic_samples"],
+        "class_distribution": info["class_distribution"],
+        "model_status": "trained",
     }
+
 
 @app.get("/api/performance")
-async def get_performance():
-    """Get model performance metrics"""
-    if not models_loaded:
-        try:
-            load_models()
-        except FileNotFoundError:
-            raise HTTPException(
-                status_code=503,
-                detail="Models not trained yet. Please run: python backend/train_models.py"
-            )
-    
-    # Load all metrics
-    with open(MODELS_DIR / "rf_baseline_metrics.pkl", "rb") as f:
-        rf_metrics = pickle.load(f)
-    with open(MODELS_DIR / "rf_augmented_metrics.pkl", "rb") as f:
-        rf_aug_metrics = pickle.load(f)
-    
+async def get_performance() -> dict[str, Any]:
+    require_models_loaded()
+
     result = {
         "random_forest": {
-            "baseline": rf_metrics,
-            "augmented": rf_aug_metrics
+            "baseline": load_pickle(MODELS_DIR / "rf_baseline_metrics.pkl"),
+            "augmented": load_pickle(MODELS_DIR / "rf_augmented_metrics.pkl"),
         }
     }
-    
-    # Load CNN metrics only if available
-    if cnn_baseline is not None and cnn_augmented is not None:
-        try:
-            with open(MODELS_DIR / "cnn_baseline_metrics.pkl", "rb") as f:
-                cnn_metrics = pickle.load(f)
-            with open(MODELS_DIR / "cnn_augmented_metrics.pkl", "rb") as f:
-                cnn_aug_metrics = pickle.load(f)
-            result["cnn"] = {
-                "baseline": cnn_metrics,
-                "augmented": cnn_aug_metrics
-            }
-        except Exception as e:
-            print(f"Warning: Could not load CNN metrics: {e}")
-            # Do not include CNN section if metrics cannot be loaded
-    
+
+    cnn_metric_bundle = get_cnn_metric_bundle()
+    if cnn_metric_bundle is not None:
+        cnn_metrics, cnn_augmented_metrics = cnn_metric_bundle
+        result["cnn"] = {
+            "baseline": cnn_metrics,
+            "augmented": cnn_augmented_metrics,
+        }
+
     return result
 
+
 @app.get("/api/visualization/umap")
-async def get_umap():
-    """Get UMAP embedding data"""
-    if not models_loaded:
-        try:
-            load_models()
-        except FileNotFoundError:
-            raise HTTPException(
-                status_code=503,
-                detail="Models not trained yet. Please run: python backend/train_models.py"
-            )
-    
-    # Sample data for UMAP
-    real_min = X_train[y_train == 0]
-    maj = X_train[y_train == 1]
-    
-    nR = min(200, len(real_min))
-    nS = min(200, 500)  # synthetic samples
-    nM = min(200, len(maj))
-    
-    real_flat = real_min[:nR].reshape(nR, -1)
-    maj_flat = maj[:nM].reshape(nM, -1)
-    
-    # Generate synthetic samples (simplified)
-    synthetic_flat = real_min[:nS].reshape(nS, -1) + np.random.normal(0, 0.1, (nS, real_flat.shape[1]))
-    
-    Z = np.vstack([real_flat, synthetic_flat, maj_flat])
-    
+async def get_umap() -> dict[str, Any]:
+    train_features, train_labels = get_train_data()
+
+    minority_samples = train_features[train_labels == 0]
+    majority_samples = train_features[train_labels == 1]
+
+    minority_count = min(200, len(minority_samples))
+    synthetic_count = min(200, 500)
+    majority_count = min(200, len(majority_samples))
+
+    minority_flat = minority_samples[:minority_count].reshape(minority_count, -1)
+    majority_flat = majority_samples[:majority_count].reshape(majority_count, -1)
+    synthetic_flat = minority_samples[:synthetic_count].reshape(synthetic_count, -1)
+    synthetic_flat = synthetic_flat + np.random.normal(
+        0,
+        0.1,
+        (synthetic_count, minority_flat.shape[1]),
+    )
+
+    stacked = np.vstack([minority_flat, synthetic_flat, majority_flat])
     reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, random_state=42)
-    emb = reducer.fit_transform(Z)
-    
-    # Format for frontend
-    real_points = [{"x": float(emb[i, 0]), "y": float(emb[i, 1]), "type": "real"} for i in range(nR)]
-    synth_points = [{"x": float(emb[i+nR, 0]), "y": float(emb[i+nR, 1]), "type": "synthetic"} for i in range(nS)]
-    maj_points = [{"x": float(emb[i+nR+nS, 0]), "y": float(emb[i+nR+nS, 1]), "type": "majority"} for i in range(nM)]
-    
-    return {
-        "points": real_points + synth_points + maj_points
-    }
+    embedding = reducer.fit_transform(stacked)
+
+    points: list[dict[str, float | str]] = []
+    for index in range(minority_count):
+        points.append(
+            {
+                "x": float(embedding[index, 0]),
+                "y": float(embedding[index, 1]),
+                "type": "real",
+            }
+        )
+
+    for index in range(synthetic_count):
+        points.append(
+            {
+                "x": float(embedding[index + minority_count, 0]),
+                "y": float(embedding[index + minority_count, 1]),
+                "type": "synthetic",
+            }
+        )
+
+    for index in range(majority_count):
+        embedding_index = index + minority_count + synthetic_count
+        points.append(
+            {
+                "x": float(embedding[embedding_index, 0]),
+                "y": float(embedding[embedding_index, 1]),
+                "type": "majority",
+            }
+        )
+
+    return {"points": points}
+
 
 @app.get("/api/visualization/channel-importance")
-async def get_channel_importance():
-    """Get channel importance data"""
-    if not models_loaded:
-        try:
-            load_models()
-        except FileNotFoundError:
-            raise HTTPException(
-                status_code=503,
-                detail="Models not trained yet. Please run: python backend/train_models.py"
-            )
-    
-    # Use feature importance from Random Forest
-    feature_importance = rf_augmented.feature_importances_
-    channels = dataset_info["channels"]
-    seq_len = dataset_info["sequence_length"]
-    
-    # Reshape to get per-channel importance
-    importance_reshaped = feature_importance.reshape(seq_len, channels)
+async def get_channel_importance() -> dict[str, Any]:
+    info = get_dataset_info()
+    rf_model = get_rf_augmented_model()
+
+    feature_importance = rf_model.feature_importances_
+    channels = info["channels"]
+    sequence_length = info["sequence_length"]
+
+    importance_reshaped = feature_importance.reshape(sequence_length, channels)
     channel_importance = np.mean(importance_reshaped, axis=0)
-    
-    # Normalize
     channel_importance = channel_importance / channel_importance.max()
-    
+
     return {
-        "channels": [f"Ch{i}" for i in range(channels)],
+        "channels": [f"Ch{index}" for index in range(channels)],
         "importance": channel_importance.tolist(),
-        "real": channel_importance.tolist(),  # Same for demo
-        "synthetic": (channel_importance * 0.9).tolist()  # Slightly different for demo
+        "real": channel_importance.tolist(),
+        "synthetic": (channel_importance * 0.9).tolist(),
     }
+
 
 @app.get("/api/visualization/eeg-signal/{channel}")
-async def get_eeg_signal(channel: int):
-    """Get sample EEG signal for a channel"""
-    if not models_loaded:
-        try:
-            load_models()
-        except FileNotFoundError:
-            raise HTTPException(
-                status_code=503,
-                detail="Models not trained yet. Please run: python backend/train_models.py"
-            )
-    
-    if channel < 0 or channel >= dataset_info["channels"]:
+async def get_eeg_signal(channel: int) -> dict[str, Any]:
+    info = get_dataset_info()
+    test_features, _ = get_test_data()
+
+    if channel < 0 or channel >= info["channels"]:
         raise HTTPException(status_code=400, detail="Invalid channel number")
-    
-    # Get a sample from test data
-    sample = X_test[0]  # First test sample
-    signal = sample[:, channel]  # Extract channel
-    
-    # Downsample for visualization (take every 4th point)
+
+    sample = test_features[0]
+    signal = sample[:, channel]
     signal_downsampled = signal[::4]
-    time_points = list(range(len(signal_downsampled)))
-    
+
     return {
-        "time": time_points,
-        "amplitude": signal_downsampled.tolist()
+        "time": list(range(len(signal_downsampled))),
+        "amplitude": signal_downsampled.tolist(),
     }
 
+
 @app.post("/api/predict")
-async def predict(file: UploadFile = File(...), model_type: str = "cnn"):
-    """Make prediction on uploaded EEG file"""
-    if not models_loaded:
-        try:
-            load_models()
-        except FileNotFoundError:
-            raise HTTPException(
-                status_code=503,
-                detail="Models not trained yet. Please run: python backend/train_models.py"
-            )
-    
-    if model_type not in ["rf", "cnn"]:
+async def predict(
+    file: UploadFile = File(...),
+    model_type: str = "cnn",
+) -> dict[str, Any]:
+    require_models_loaded()
+
+    if model_type not in {"rf", "cnn"}:
         raise HTTPException(status_code=400, detail="model_type must be 'rf' or 'cnn'")
-    
-    # Check if CNN is requested but not available
+
     if model_type == "cnn" and (not TORCH_AVAILABLE or cnn_augmented is None):
         raise HTTPException(
-            status_code=503, 
-            detail="CNN model not available. PyTorch failed to load. Please use model_type=rf instead."
+            status_code=503,
+            detail=(
+                "CNN model not available. PyTorch failed to load. "
+                "Please use model_type=rf instead."
+            ),
         )
-    
+
+    temp_path = Path(f"temp_{file.filename}")
     try:
-        # Read uploaded file
         contents = await file.read()
-        
-        # Save temporarily
-        temp_path = Path(f"temp_{file.filename}")
-        with open(temp_path, "wb") as f:
-            f.write(contents)
-        
-        # Read EDF file
-        f = pyedflib.EdfReader(str(temp_path))
-        n = f.signals_in_file
-        samples = f.getNSamples()[0]
-        signals = np.zeros((samples, n))
-        for ch in range(n):
-            signals[:, ch] = f.readSignal(ch)
-        f.close()
-        
-        # Process signal
+        with temp_path.open("wb") as temp_file:
+            temp_file.write(contents)
+
+        edf_reader = pyedflib.EdfReader(str(temp_path))
+        try:
+            signal_count = edf_reader.signals_in_file
+            sample_count = edf_reader.getNSamples()[0]
+            signals = np.zeros((sample_count, signal_count))
+            for channel_index in range(signal_count):
+                signals[:, channel_index] = edf_reader.readSignal(channel_index)
+        finally:
+            edf_reader.close()
+
         windows = create_windows(signals)
         if len(windows) == 0:
             raise HTTPException(status_code=400, detail="Signal too short")
-        
-        # Use first window
+
         window = windows[0]
-        window_ds = downsample_window(window)
-        
-        # Make prediction
+        downsampled_window = downsample_window(window)
+
         if model_type == "rf":
-            window_flat = flatten_windows(window_ds.reshape(1, *window_ds.shape))
-            prob = rf_augmented.predict_proba(window_flat)[0, 1]
-        else:  # cnn
-            if not TORCH_AVAILABLE or cnn_augmented is None:
-                raise HTTPException(status_code=503, detail="CNN model not available")
-            window_tensor = torch.tensor(window_ds).permute(1, 0).unsqueeze(0).float()
+            rf_model = get_rf_augmented_model()
+            flattened = flatten_windows(
+                downsampled_window.reshape(1, *downsampled_window.shape)
+            )
+            probability = rf_model.predict_proba(flattened)[0, 1]
+        else:
+            assert cnn_augmented is not None
+            window_tensor = (
+                torch.tensor(downsampled_window).permute(1, 0).unsqueeze(0).float()
+            )
             with torch.no_grad():
                 logit = cnn_augmented(window_tensor).item()
-            prob = 1 / (1 + np.exp(-logit))
-        
-        # Cleanup
-        temp_path.unlink()
-        
-        prediction = "Good Quality (Group G)" if prob > 0.5 else "Bad Quality (Group B)"
-        confidence = "High" if prob > 0.8 or prob < 0.2 else "Medium" if prob > 0.65 or prob < 0.35 else "Low"
-        
+            probability = 1 / (1 + np.exp(-logit))
+
+        prediction = (
+            "Good Quality (Group G)" if probability > 0.5 else "Bad Quality (Group B)"
+        )
+        confidence = (
+            "High"
+            if probability > 0.8 or probability < 0.2
+            else "Medium"
+            if probability > 0.65 or probability < 0.35
+            else "Low"
+        )
+
         return {
             "class": prediction,
-            "probability": float(prob),
-            "confidence": confidence
+            "probability": float(probability),
+            "confidence": confidence,
         }
-    
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail=f"Error processing file: {exc}"
+        ) from exc
+    finally:
+        if temp_path.exists():
+            temp_path.unlink()
+
 
 @app.get("/api/dataset/info")
-async def get_dataset_info():
-    """Get dataset information"""
-    if not models_loaded:
-        try:
-            load_models()
-        except FileNotFoundError:
-            raise HTTPException(
-                status_code=503,
-                detail="Models not trained yet. Please run: python backend/train_models.py"
-            )
-    
-    return dataset_info
+async def get_dataset_info_route() -> dict[str, Any]:
+    return get_dataset_info()
+
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
 
+    uvicorn.run(app, host="0.0.0.0", port=8000)

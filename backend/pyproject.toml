@@ -42,7 +42,11 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
-ignore = ["E501"]  # line length handled by formatter
+ignore = [
+    "E501",  # line length handled by formatter
+    "N803",  # scientific code convention: X/y style arguments
+    "N806",  # scientific code convention: X_train/y_test variables
+]
 
 [tool.ruff.format]
 quote-style = "double"
