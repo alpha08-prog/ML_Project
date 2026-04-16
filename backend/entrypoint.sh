@@ -1,29 +1,44 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-INIT_MARKER="/project/models/.initialized"
+PROJECT_ROOT="/project"
+DATA_DIR="$PROJECT_ROOT/Data/eegmat"
+MODELS_DIR="$PROJECT_ROOT/models"
+MODELS_READY_FILE="$MODELS_DIR/dataset_info.pkl"
+AUTO_BOOTSTRAP="${AUTO_BOOTSTRAP:-false}"
+HOST="${HOST:-0.0.0.0}"
+PORT="${PORT:-8000}"
 
-if [ ! -f "$INIT_MARKER" ]; then
-    echo "=== First run: setting up data and models ==="
+has_eeg_data() {
+    compgen -G "$DATA_DIR/Subject*_*.edf" > /dev/null
+}
 
-    # Download EEG data
-    echo "Downloading data..."
-    cd /project
-    python download_data.py
+bootstrap_assets() {
+    echo "=== Bootstrapping EEG data and trained models ==="
 
-    # Train models
+    cd "$PROJECT_ROOT"
+    if has_eeg_data; then
+        echo "EEG data already present. Skipping download."
+    else
+        echo "Downloading EEG data..."
+        python download_data.py
+    fi
+
     echo "Training models..."
-    cd /project/backend
+    cd "$PROJECT_ROOT/backend"
     python train_models.py
 
-    # Mark as initialized
-    touch "$INIT_MARKER"
+    echo "=== Bootstrap complete ==="
+}
 
-    echo "=== Setup complete ==="
+if [ -f "$MODELS_READY_FILE" ]; then
+    echo "=== Trained models found. Skipping bootstrap. ==="
+elif [ "$AUTO_BOOTSTRAP" = "true" ]; then
+    bootstrap_assets
 else
-    echo "=== Skipping setup (already initialized) ==="
+    echo "=== No trained models found. Starting API without bootstrap. ==="
+    echo "Set AUTO_BOOTSTRAP=true to download data and train models on startup."
 fi
 
-# Start the backend server
-echo "Starting FastAPI server..."
-exec uvicorn api:app --host 0.0.0.0 --port 8000
+echo "Starting FastAPI server on ${HOST}:${PORT}..."
+exec uvicorn api:app --host "$HOST" --port "$PORT"

@@ -9,18 +9,19 @@ services:
       - backend-models:/project/models
       - backend-data:/project/Data
     environment:
-      - PYTHONUNBUFFERED=1
+      PYTHONUNBUFFERED: "1"
+      AUTO_BOOTSTRAP: "true"
 
   frontend:
     build:
       context: frontend/ml
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "5173:5173"
     depends_on:
       - backend
     environment:
-      - VITE_API_URL=http://backend:8000
+      VITE_API_URL: http://backend:8000
 
 volumes:
   backend-models:

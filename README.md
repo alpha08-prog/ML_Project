@@ -1,206 +1,118 @@
-# EEG Mental Arithmetic Classification - ML Project
+# EEG Mental Arithmetic Classification
 
-A complete machine learning project for classifying EEG signals to determine mental arithmetic task performance quality, featuring a modern React frontend and FastAPI backend.
+This project classifies EEG signals for mental arithmetic performance quality with a FastAPI backend and a React frontend.
 
-## 🚀 Quick Start
+## Project layout
 
-### 1. Conda Environment
+```text
+ML_Project/
+|-- backend/           FastAPI API, training script, Python dependencies
+|-- frontend/ml/       React + Vite frontend
+|-- Data/              EEG metadata plus downloaded EDF files at runtime
+|-- models/            Trained model artifacts generated locally or on first deploy
+|-- .github/workflows/ CI and CD GitHub Actions workflows
+|-- docker-compose.yml Development Docker Compose stack
+|-- docker-compose.prod.yml Production Docker Compose stack
+```
 
-Create the conda environment from the provided `environment.yml` (includes Python 3.12, NumPy, SciPy, PyTorch, and Poetry):
+## Local development
+
+### Backend
+
 ```bash
 cd backend
 conda env create -f environment.yml
 conda activate mlproj
-```
-
-**For GPU users (NVIDIA CUDA 12.4):**
-```bash
-cd backend
-conda env create -f environment-gpu.yml
-conda activate mlproj
-```
-
-### 2. Install Python Packages (Poetry)
-
-With the conda environment active, install the remaining Python dependencies via Poetry:
-```bash
-cd backend
 poetry install
-```
-
-> **Note:** `poetry.toml` is configured with `virtualenvs.create = false`, so Poetry installs directly into the active conda environment.
-
-### 3. Download EEG Data
-
-The EEG dataset is not included in the repository. Download it from PhysioNet:
-```bash
-python download_data.py
-```
-
-This downloads ~170 MB of EDF files (72 files for 36 subjects) into `Data/eegmat/`.
-
-### 4. Frontend Setup
-
-Requires Node.js >= 20.19.0.
-```bash
-cd frontend/ml
-npm install
-```
-
-### 5. Pre-commit Hooks
-
-Pre-commit runs formatting, linting, and type checks automatically on every `git commit`.
-
-```bash
-brew install pre-commit       # install (once per machine)
-pre-commit install            # activate hooks for this repo (once per clone)
-```
-
-To run all checks manually without committing:
-```bash
-pre-commit run --all-files
-```
-
-### 6. Train Models
-
-```bash
-python backend/train_models.py
-```
-
-This will train all models and save them to the `models/` directory (~5-10 minutes).
-
-### 7. Start Backend
-
-**Windows:**
-```bash
-start_backend.bat
-```
-
-**Linux/Mac:**
-```bash
-./start_backend.sh
-```
-
-Or manually:
-```bash
-cd backend
 python api.py
 ```
 
-Backend runs on `http://localhost:8000`
+The API runs on `http://localhost:8000`.
 
-### 8. Start Frontend
+### Frontend
 
 ```bash
 cd frontend/ml
+npm ci
 npm run dev
 ```
 
-Frontend runs on `http://localhost:5173`
+The frontend runs on `http://localhost:5173`.
 
-## 📁 Project Structure
+### Data and model training
 
-```
-ML_Project/
-├── backend/
-│   ├── api.py              # FastAPI backend server
-│   ├── train_models.py     # Model training script
-│   ├── pyproject.toml      # Poetry dependencies
-│   ├── poetry.lock         # Poetry lock file
-│   ├── poetry.toml         # Poetry config (no virtualenv)
-│   ├── environment.yml     # Conda environment (CPU)
-│   └── environment-gpu.yml # Conda environment (GPU/CUDA)
-├── frontend/ml/
-│   ├── src/
-│   │   ├── services/
-│   │   │   └── api.ts      # API client service
-│   │   ├── pages/          # React pages
-│   │   └── components/     # React components
-│   └── package.json
-├── models/                 # Trained models (generated, gitignored)
-├── Data/                   # EEG dataset (gitignored)
-├── download_data.py        # Script to fetch EEG data from PhysioNet
-├── .hooks/                 # Custom hook scripts (used by pre-commit)
-│   └── check-branch-up-to-date.sh
-├── .pre-commit-config.yaml # Pre-commit hook definitions
-├── .github/workflows/
-│   └── ci.yml              # GitHub Actions CI pipeline
-├── .gitignore              # Git ignore rules
-├── .gitattributes          # Git attributes
-└── README.md
+The repository does not store EEG `.edf` files or trained model artifacts.
+
+```bash
+python download_data.py
+python backend/train_models.py
 ```
 
-## 🎯 Features
+Artifacts are written to `Data/eegmat/` and `models/`.
 
-### Frontend
-- **Dashboard**: Overview metrics and visualizations
-- **Model Performance**: Detailed comparison of baseline vs augmented models
-- **Data Visualization**: Interactive EEG signals, UMAP embeddings, channel analysis
-- **Predictions**: Upload EDF files and get real-time predictions
-- **About**: Project documentation and methodology
+## Docker workflows
 
-### Backend
-- **RESTful API**: FastAPI with automatic documentation
-- **Model Serving**: Load and serve trained models
-- **File Upload**: Process EDF files for predictions
-- **Visualizations**: Generate UMAP embeddings and channel importance
+### Development Compose
 
-## 📊 Models
+```bash
+docker compose up --build
+```
 
-The project trains and compares:
+This stack keeps the frontend in Vite dev mode and enables backend auto-bootstrap so a fresh environment can download data and train models on first run.
 
-1. **Random Forest (Baseline)**: Traditional ML approach
-2. **Random Forest (Augmented)**: With synthetic data
-3. **CNN (Baseline)**: Deep learning approach
-4. **CNN (Augmented)**: With synthetic data
+### Production Compose
 
-All models are saved after training and can be used for predictions.
+`docker-compose.prod.yml` expects prebuilt images and persistent volumes:
 
-## 🔧 API Endpoints
+- `BACKEND_IMAGE`
+- `FRONTEND_IMAGE`
+- Optional: `AUTO_BOOTSTRAP` (defaults to `true`)
+- Optional: `FRONTEND_PORT` (defaults to `80`)
 
-- `GET /api/dashboard` - Dashboard metrics
-- `GET /api/performance` - Model performance metrics
-- `GET /api/visualization/umap` - UMAP embedding data
-- `GET /api/visualization/channel-importance` - Channel analysis
-- `GET /api/visualization/eeg-signal/{channel}` - EEG signal data
-- `POST /api/predict` - Make predictions on uploaded files
+Example:
 
-Full API documentation: `http://localhost:8000/docs`
+```bash
+BACKEND_IMAGE=ghcr.io/OWNER/REPO-backend:latest \
+FRONTEND_IMAGE=ghcr.io/OWNER/REPO-frontend:latest \
+docker compose -f docker-compose.prod.yml up -d
+```
 
-## 📚 Documentation
+The production frontend is served by Nginx and proxies `/api`, `/docs`, `/redoc`, and `/openapi.json` to the backend container.
 
-All key instructions are consolidated here. The FastAPI docs are available at runtime at `http://localhost:8000/docs`.
+## CI pipeline
 
-## 🛠️ Technologies
+`.github/workflows/ci.yml` runs on every push and pull request and checks:
 
-**Backend:**
-- Python 3.12 (recommended)
-- FastAPI
-- PyTorch
-- scikit-learn
-- NumPy, Pandas, SciPy
+- Backend formatting, linting, and mypy
+- Frontend lint, formatting, type checking, and production build
+- Docker Compose configuration validation for development and production stacks
 
-**Frontend:**
-- React 19
-- TypeScript
-- Vite
-- Recharts
-- React Router
+## CD pipeline
 
-## 📝 Notes
+`.github/workflows/cd.yml` runs after the `CI` workflow succeeds on `main`, and it can also be started manually with `workflow_dispatch`.
 
-- Models are trained on EEG data from 36 subjects
-- Class imbalance handled with synthetic data generation
-- CNN features require a working PyTorch install; Random Forest works without PyTorch
+It does two things:
 
-## 🤝 Contributing
+1. Builds and pushes backend and frontend images to GitHub Container Registry.
+2. Optionally deploys them to a Linux host over SSH with Docker Compose.
 
-1. Install pre-commit hooks: `brew install pre-commit && pre-commit install`
-2. Train models: `python backend/train_models.py`
-3. Start backend: `python backend/api.py`
-4. Start frontend: `cd frontend/ml && npm run dev`
-5. Make changes and test — hooks run automatically on `git commit`
+The deploy job is enabled when these GitHub repository secrets exist:
 
-## 📄 License
+- `DEPLOY_HOST`
+- `DEPLOY_USER`
+- `DEPLOY_SSH_KEY`
+- `REGISTRY_USERNAME`
+- `REGISTRY_TOKEN`
 
-This project is for educational/research purposes.
+Optional secrets and variables:
+
+- `DEPLOY_PORT` default `22`
+- `DEPLOY_PATH` default `ml-project`
+- Repository variable `FRONTEND_PORT` default `80`
+- Repository variable `AUTO_BOOTSTRAP` default `true`
+
+## Notes
+
+- First production startup can take time if `AUTO_BOOTSTRAP=true`, because the backend may download the EEG dataset and train models.
+- For faster deploys, keep the named volumes and switch `AUTO_BOOTSTRAP=false` after the first successful bootstrap.
+- If you want a different deployment target later, the current CD workflow is easy to adapt because the image publish stage is already separated from the deploy stage.
