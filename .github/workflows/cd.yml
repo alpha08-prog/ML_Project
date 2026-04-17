@@ -26,7 +26,8 @@ jobs:
         run: |
           echo "Line count of key:"
           echo "${{ secrets.DEPLOY_SSH_KEY }}" | wc -l
-
+      - name: Debug host
+        run: echo "HOST=${{ secrets.DEPLOY_HOST }}"
       # ✅ Deploy to EC2
       - name: Deploy via SSH
         run: |
