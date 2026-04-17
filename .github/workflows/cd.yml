@@ -11,8 +11,9 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
+      # ✅ Setup SSH properly
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
@@ -20,11 +21,13 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Debug SSH key lines
+      # ✅ Debug (important for you)
+      - name: Debug SSH key
         run: |
-          echo "Key line count:"
+          echo "Line count of key:"
           echo "${{ secrets.DEPLOY_SSH_KEY }}" | wc -l
 
+      # ✅ Deploy to EC2
       - name: Deploy via SSH
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 \
@@ -33,11 +36,13 @@ jobs:
           mkdir -p ${{ secrets.DEPLOY_PATH }}
           cd ${{ secrets.DEPLOY_PATH }}
 
+          # create env file
           echo "AUTO_BOOTSTRAP=false" > .env
           echo "FRONTEND_PORT=80" >> .env
 
-          docker compose pull
-          docker compose down
-          docker compose up -d
+          # pull latest images and restart
+          docker compose -f docker-compose.prod.yml pull
+          docker compose -f docker-compose.prod.yml down
+          docker compose -f docker-compose.prod.yml up -d
 
           EOF
