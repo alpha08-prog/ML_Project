@@ -88,19 +88,19 @@ jobs:
         env:
           DEPLOY_SSH_KEY_SECRET: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_HOST_SECRET: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_HOST_VAR: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_HOST_VAR: ${{ vars.DEPLOY_HOST || '' }}
           DEPLOY_PORT_SECRET: ${{ secrets.DEPLOY_PORT }}
-          DEPLOY_PORT_VAR: ${{ vars.DEPLOY_PORT }}
+          DEPLOY_PORT_VAR: ${{ vars.DEPLOY_PORT || '' }}
           DEPLOY_USER_SECRET: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_USER_VAR: ${{ vars.DEPLOY_USER }}
+          DEPLOY_USER_VAR: ${{ vars.DEPLOY_USER || '' }}
           DEPLOY_PATH_SECRET: ${{ secrets.DEPLOY_PATH }}
-          DEPLOY_PATH_VAR: ${{ vars.DEPLOY_PATH }}
+          DEPLOY_PATH_VAR: ${{ vars.DEPLOY_PATH || '' }}
           REGISTRY_USERNAME_SECRET: ${{ secrets.REGISTRY_USERNAME }}
-          REGISTRY_USERNAME_VAR: ${{ vars.REGISTRY_USERNAME }}
+          REGISTRY_USERNAME_VAR: ${{ vars.REGISTRY_USERNAME || '' }}
           REGISTRY_TOKEN_SECRET: ${{ secrets.REGISTRY_TOKEN }}
-          REGISTRY_TOKEN_VAR: ${{ vars.REGISTRY_TOKEN }}
-          FRONTEND_PORT_VAR: ${{ vars.FRONTEND_PORT }}
-          AUTO_BOOTSTRAP_VAR: ${{ vars.AUTO_BOOTSTRAP }}
+          REGISTRY_TOKEN_VAR: ${{ vars.REGISTRY_TOKEN || '' }}
+          FRONTEND_PORT_VAR: ${{ vars.FRONTEND_PORT || '' }}
+          AUTO_BOOTSTRAP_VAR: ${{ vars.AUTO_BOOTSTRAP || '' }}
           BACKEND_IMAGE_FROM_BUILD: ${{ needs.build-and-push.outputs.backend_image }}
           FRONTEND_IMAGE_FROM_BUILD: ${{ needs.build-and-push.outputs.frontend_image }}
         run: |
