@@ -8,8 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+    environment: production
 
     steps:
       - name: Checkout code
@@ -17,6 +16,7 @@ jobs:
 
       - name: Resolve deployment configuration (secret -> variable fallback)
         env:
+          DEPLOY_SSH_KEY_SECRET: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_HOST_SECRET: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_HOST_VAR: ${{ vars.DEPLOY_HOST }}
           DEPLOY_USER_SECRET: ${{ secrets.DEPLOY_USER }}
@@ -26,13 +26,19 @@ jobs:
         run: |
           set -euo pipefail
 
+          DEPLOY_SSH_KEY="${DEPLOY_SSH_KEY_SECRET:-}"
           DEPLOY_HOST="${DEPLOY_HOST_SECRET:-${DEPLOY_HOST_VAR:-}}"
           DEPLOY_USER="${DEPLOY_USER_SECRET:-${DEPLOY_USER_VAR:-}}"
           DEPLOY_PATH="${DEPLOY_PATH_SECRET:-${DEPLOY_PATH_VAR:-}}"
 
+          ssh_key_source="none"
           host_source="none"
           user_source="none"
           path_source="none"
+
+          if [ -n "${DEPLOY_SSH_KEY_SECRET:-}" ]; then
+            ssh_key_source="secret"
+          fi
 
           if [ -n "${DEPLOY_HOST_SECRET:-}" ]; then
             host_source="secret"
@@ -53,12 +59,17 @@ jobs:
           fi
 
           {
+            echo "DEPLOY_SSH_KEY<<EOF"
+            echo "$DEPLOY_SSH_KEY"
+            echo "EOF"
             echo "DEPLOY_HOST=$DEPLOY_HOST"
             echo "DEPLOY_USER=$DEPLOY_USER"
             echo "DEPLOY_PATH=$DEPLOY_PATH"
           } >> "$GITHUB_ENV"
 
+          echo "Environment: production"
           echo "Event: ${{ github.event_name }} on ${{ github.ref }}"
+          echo "DEPLOY_SSH_KEY source: $ssh_key_source"
           echo "DEPLOY_HOST source: $host_source"
           echo "DEPLOY_USER source: $user_source"
           echo "DEPLOY_PATH source: $path_source"
