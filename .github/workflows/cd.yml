@@ -10,21 +10,66 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST || vars.DEPLOY_HOST }}
-      DEPLOY_USER: ${{ secrets.DEPLOY_USER || vars.DEPLOY_USER }}
-      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || vars.DEPLOY_PATH }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Resolve deployment configuration (secret -> variable fallback)
+        env:
+          DEPLOY_HOST_SECRET: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_HOST_VAR: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER_SECRET: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_USER_VAR: ${{ vars.DEPLOY_USER }}
+          DEPLOY_PATH_SECRET: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_PATH_VAR: ${{ vars.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+
+          DEPLOY_HOST="${DEPLOY_HOST_SECRET:-${DEPLOY_HOST_VAR:-}}"
+          DEPLOY_USER="${DEPLOY_USER_SECRET:-${DEPLOY_USER_VAR:-}}"
+          DEPLOY_PATH="${DEPLOY_PATH_SECRET:-${DEPLOY_PATH_VAR:-}}"
+
+          host_source="none"
+          user_source="none"
+          path_source="none"
+
+          if [ -n "${DEPLOY_HOST_SECRET:-}" ]; then
+            host_source="secret"
+          elif [ -n "${DEPLOY_HOST_VAR:-}" ]; then
+            host_source="variable"
+          fi
+
+          if [ -n "${DEPLOY_USER_SECRET:-}" ]; then
+            user_source="secret"
+          elif [ -n "${DEPLOY_USER_VAR:-}" ]; then
+            user_source="variable"
+          fi
+
+          if [ -n "${DEPLOY_PATH_SECRET:-}" ]; then
+            path_source="secret"
+          elif [ -n "${DEPLOY_PATH_VAR:-}" ]; then
+            path_source="variable"
+          fi
+
+          {
+            echo "DEPLOY_HOST=$DEPLOY_HOST"
+            echo "DEPLOY_USER=$DEPLOY_USER"
+            echo "DEPLOY_PATH=$DEPLOY_PATH"
+          } >> "$GITHUB_ENV"
+
+          echo "Event: ${{ github.event_name }} on ${{ github.ref }}"
+          echo "DEPLOY_HOST source: $host_source"
+          echo "DEPLOY_USER source: $user_source"
+          echo "DEPLOY_PATH source: $path_source"
+
       - name: Validate deployment configuration
         run: |
           set -euo pipefail
           [ -n "${DEPLOY_SSH_KEY:-}" ] || { echo "::error::DEPLOY_SSH_KEY is empty."; exit 1; }
-          [ -n "${DEPLOY_HOST:-}" ] || { echo "::error::DEPLOY_HOST is empty. Set it in repository Secrets (or Variables)."; exit 1; }
-          [ -n "${DEPLOY_USER:-}" ] || { echo "::error::DEPLOY_USER is empty. Set it in repository Secrets (or Variables)."; exit 1; }
-          [ -n "${DEPLOY_PATH:-}" ] || { echo "::error::DEPLOY_PATH is empty. Set it in repository Secrets (or Variables)."; exit 1; }
+          [ -n "${DEPLOY_HOST:-}" ] || { echo "::error::DEPLOY_HOST is empty. Checked secrets.DEPLOY_HOST and vars.DEPLOY_HOST. If you set an Environment secret/variable, add jobs.deploy.environment: <env-name>."; exit 1; }
+          [ -n "${DEPLOY_USER:-}" ] || { echo "::error::DEPLOY_USER is empty. Checked secrets.DEPLOY_USER and vars.DEPLOY_USER. If you set an Environment secret/variable, add jobs.deploy.environment: <env-name>."; exit 1; }
+          [ -n "${DEPLOY_PATH:-}" ] || { echo "::error::DEPLOY_PATH is empty. Checked secrets.DEPLOY_PATH and vars.DEPLOY_PATH. If you set an Environment secret/variable, add jobs.deploy.environment: <env-name>."; exit 1; }
 
       - name: Set up SSH
         run: |
