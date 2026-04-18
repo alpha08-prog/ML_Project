@@ -19,6 +19,8 @@ jobs:
           DEPLOY_SSH_KEY_SECRET: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_HOST_SECRET: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_HOST_VAR: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_PORT_SECRET: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_PORT_VAR: ${{ vars.DEPLOY_PORT }}
           DEPLOY_USER_SECRET: ${{ secrets.DEPLOY_USER }}
           DEPLOY_USER_VAR: ${{ vars.DEPLOY_USER }}
           DEPLOY_PATH_SECRET: ${{ secrets.DEPLOY_PATH }}
@@ -28,11 +30,13 @@ jobs:
 
           DEPLOY_SSH_KEY="${DEPLOY_SSH_KEY_SECRET:-}"
           DEPLOY_HOST="${DEPLOY_HOST_SECRET:-${DEPLOY_HOST_VAR:-}}"
+          DEPLOY_PORT="${DEPLOY_PORT_SECRET:-${DEPLOY_PORT_VAR:-22}}"
           DEPLOY_USER="${DEPLOY_USER_SECRET:-${DEPLOY_USER_VAR:-}}"
           DEPLOY_PATH="${DEPLOY_PATH_SECRET:-${DEPLOY_PATH_VAR:-}}"
 
           ssh_key_source="none"
           host_source="none"
+          port_source="default"
           user_source="none"
           path_source="none"
 
@@ -44,6 +48,12 @@ jobs:
             host_source="secret"
           elif [ -n "${DEPLOY_HOST_VAR:-}" ]; then
             host_source="variable"
+          fi
+
+          if [ -n "${DEPLOY_PORT_SECRET:-}" ]; then
+            port_source="secret"
+          elif [ -n "${DEPLOY_PORT_VAR:-}" ]; then
+            port_source="variable"
           fi
 
           if [ -n "${DEPLOY_USER_SECRET:-}" ]; then
@@ -63,6 +73,7 @@ jobs:
             echo "$DEPLOY_SSH_KEY"
             echo "EOF"
             echo "DEPLOY_HOST=$DEPLOY_HOST"
+            echo "DEPLOY_PORT=$DEPLOY_PORT"
             echo "DEPLOY_USER=$DEPLOY_USER"
             echo "DEPLOY_PATH=$DEPLOY_PATH"
           } >> "$GITHUB_ENV"
@@ -71,6 +82,7 @@ jobs:
           echo "Event: ${{ github.event_name }} on ${{ github.ref }}"
           echo "DEPLOY_SSH_KEY source: $ssh_key_source"
           echo "DEPLOY_HOST source: $host_source"
+          echo "DEPLOY_PORT source: $port_source"
           echo "DEPLOY_USER source: $user_source"
           echo "DEPLOY_PATH source: $path_source"
 
@@ -79,6 +91,7 @@ jobs:
           set -euo pipefail
           [ -n "${DEPLOY_SSH_KEY:-}" ] || { echo "::error::DEPLOY_SSH_KEY is empty."; exit 1; }
           [ -n "${DEPLOY_HOST:-}" ] || { echo "::error::DEPLOY_HOST is empty. Checked secrets.DEPLOY_HOST and vars.DEPLOY_HOST. If you set an Environment secret/variable, add jobs.deploy.environment: <env-name>."; exit 1; }
+          [ -n "${DEPLOY_PORT:-}" ] || { echo "::error::DEPLOY_PORT is empty. Checked secrets.DEPLOY_PORT and vars.DEPLOY_PORT."; exit 1; }
           [ -n "${DEPLOY_USER:-}" ] || { echo "::error::DEPLOY_USER is empty. Checked secrets.DEPLOY_USER and vars.DEPLOY_USER. If you set an Environment secret/variable, add jobs.deploy.environment: <env-name>."; exit 1; }
           [ -n "${DEPLOY_PATH:-}" ] || { echo "::error::DEPLOY_PATH is empty. Checked secrets.DEPLOY_PATH and vars.DEPLOY_PATH. If you set an Environment secret/variable, add jobs.deploy.environment: <env-name>."; exit 1; }
 
@@ -88,12 +101,26 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Show deploy key fingerprint
+        run: |
+          set -euo pipefail
+          echo "Deploy key fingerprint:"
+          ssh-keygen -lf ~/.ssh/id_ed25519 -E sha256
+
+      - name: Verify SSH authentication
+        run: |
+          set -euo pipefail
+          ssh -T -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/id_ed25519 -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "echo SSH authentication succeeded" || {
+            echo "::error::SSH authentication failed. Check DEPLOY_USER, DEPLOY_PORT, and that the public key for DEPLOY_SSH_KEY is present in ~/.ssh/authorized_keys for that user on the server."
+            exit 1
+          }
 
       - name: Deploy via SSH
         run: |
           set -euo pipefail
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_ed25519 "$DEPLOY_USER@$DEPLOY_HOST" <<EOF
+          ssh -T -o StrictHostKeyChecking=yes -i ~/.ssh/id_ed25519 -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" <<EOF
           mkdir -p "$DEPLOY_PATH"
           cd "$DEPLOY_PATH"
 
