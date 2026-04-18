@@ -5,16 +5,86 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      backend_image: ${{ steps.image-vars.outputs.backend_image }}
+      frontend_image: ${{ steps.image-vars.outputs.frontend_image }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Resolve image names
+        id: image-vars
+        run: |
+          set -euo pipefail
+
+          owner_slug="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          repo_slug="$(echo '${{ github.event.repository.name }}' | tr '[:upper:]' '[:lower:]' | tr '_' '-')"
+
+          backend_image="ghcr.io/${owner_slug}/${repo_slug}-backend:${GITHUB_SHA}"
+          frontend_image="ghcr.io/${owner_slug}/${repo_slug}-frontend:${GITHUB_SHA}"
+          backend_latest="ghcr.io/${owner_slug}/${repo_slug}-backend:latest"
+          frontend_latest="ghcr.io/${owner_slug}/${repo_slug}-frontend:latest"
+
+          {
+            echo "backend_image=$backend_image"
+            echo "frontend_image=$frontend_image"
+            echo "backend_tags<<EOF"
+            echo "$backend_image"
+            echo "$backend_latest"
+            echo "EOF"
+            echo "frontend_tags<<EOF"
+            echo "$frontend_image"
+            echo "$frontend_latest"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Backend image: $backend_image"
+          echo "Frontend image: $frontend_image"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: ${{ steps.image-vars.outputs.backend_tags }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend/ml
+          file: ./frontend/ml/Dockerfile
+          push: true
+          tags: ${{ steps.image-vars.outputs.frontend_tags }}
+
   deploy:
     runs-on: ubuntu-latest
+    needs: build-and-push
     environment: production
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Resolve deployment configuration (secret -> variable fallback)
+      - name: Resolve deployment configuration
         env:
           DEPLOY_SSH_KEY_SECRET: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_HOST_SECRET: ${{ secrets.DEPLOY_HOST }}
@@ -25,6 +95,14 @@ jobs:
           DEPLOY_USER_VAR: ${{ vars.DEPLOY_USER }}
           DEPLOY_PATH_SECRET: ${{ secrets.DEPLOY_PATH }}
           DEPLOY_PATH_VAR: ${{ vars.DEPLOY_PATH }}
+          REGISTRY_USERNAME_SECRET: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_USERNAME_VAR: ${{ vars.REGISTRY_USERNAME }}
+          REGISTRY_TOKEN_SECRET: ${{ secrets.REGISTRY_TOKEN }}
+          REGISTRY_TOKEN_VAR: ${{ vars.REGISTRY_TOKEN }}
+          FRONTEND_PORT_VAR: ${{ vars.FRONTEND_PORT }}
+          AUTO_BOOTSTRAP_VAR: ${{ vars.AUTO_BOOTSTRAP }}
+          BACKEND_IMAGE_FROM_BUILD: ${{ needs.build-and-push.outputs.backend_image }}
+          FRONTEND_IMAGE_FROM_BUILD: ${{ needs.build-and-push.outputs.frontend_image }}
         run: |
           set -euo pipefail
 
@@ -32,41 +110,11 @@ jobs:
           DEPLOY_HOST="${DEPLOY_HOST_SECRET:-${DEPLOY_HOST_VAR:-}}"
           DEPLOY_PORT="${DEPLOY_PORT_SECRET:-${DEPLOY_PORT_VAR:-22}}"
           DEPLOY_USER="${DEPLOY_USER_SECRET:-${DEPLOY_USER_VAR:-}}"
-          DEPLOY_PATH="${DEPLOY_PATH_SECRET:-${DEPLOY_PATH_VAR:-}}"
-
-          ssh_key_source="none"
-          host_source="none"
-          port_source="default"
-          user_source="none"
-          path_source="none"
-
-          if [ -n "${DEPLOY_SSH_KEY_SECRET:-}" ]; then
-            ssh_key_source="secret"
-          fi
-
-          if [ -n "${DEPLOY_HOST_SECRET:-}" ]; then
-            host_source="secret"
-          elif [ -n "${DEPLOY_HOST_VAR:-}" ]; then
-            host_source="variable"
-          fi
-
-          if [ -n "${DEPLOY_PORT_SECRET:-}" ]; then
-            port_source="secret"
-          elif [ -n "${DEPLOY_PORT_VAR:-}" ]; then
-            port_source="variable"
-          fi
-
-          if [ -n "${DEPLOY_USER_SECRET:-}" ]; then
-            user_source="secret"
-          elif [ -n "${DEPLOY_USER_VAR:-}" ]; then
-            user_source="variable"
-          fi
-
-          if [ -n "${DEPLOY_PATH_SECRET:-}" ]; then
-            path_source="secret"
-          elif [ -n "${DEPLOY_PATH_VAR:-}" ]; then
-            path_source="variable"
-          fi
+          DEPLOY_PATH="${DEPLOY_PATH_SECRET:-${DEPLOY_PATH_VAR:-ml-project}}"
+          REGISTRY_USERNAME="${REGISTRY_USERNAME_SECRET:-${REGISTRY_USERNAME_VAR:-}}"
+          REGISTRY_TOKEN="${REGISTRY_TOKEN_SECRET:-${REGISTRY_TOKEN_VAR:-}}"
+          FRONTEND_PORT="${FRONTEND_PORT_VAR:-80}"
+          AUTO_BOOTSTRAP="${AUTO_BOOTSTRAP_VAR:-true}"
 
           {
             echo "DEPLOY_SSH_KEY<<EOF"
@@ -76,24 +124,33 @@ jobs:
             echo "DEPLOY_PORT=$DEPLOY_PORT"
             echo "DEPLOY_USER=$DEPLOY_USER"
             echo "DEPLOY_PATH=$DEPLOY_PATH"
+            echo "REGISTRY_USERNAME=$REGISTRY_USERNAME"
+            echo "REGISTRY_TOKEN<<EOF"
+            echo "$REGISTRY_TOKEN"
+            echo "EOF"
+            echo "BACKEND_IMAGE=$BACKEND_IMAGE_FROM_BUILD"
+            echo "FRONTEND_IMAGE=$FRONTEND_IMAGE_FROM_BUILD"
+            echo "FRONTEND_PORT=$FRONTEND_PORT"
+            echo "AUTO_BOOTSTRAP=$AUTO_BOOTSTRAP"
           } >> "$GITHUB_ENV"
 
           echo "Environment: production"
           echo "Event: ${{ github.event_name }} on ${{ github.ref }}"
-          echo "DEPLOY_SSH_KEY source: $ssh_key_source"
-          echo "DEPLOY_HOST source: $host_source"
-          echo "DEPLOY_PORT source: $port_source"
-          echo "DEPLOY_USER source: $user_source"
-          echo "DEPLOY_PATH source: $path_source"
+          echo "Backend image: $BACKEND_IMAGE_FROM_BUILD"
+          echo "Frontend image: $FRONTEND_IMAGE_FROM_BUILD"
 
       - name: Validate deployment configuration
         run: |
           set -euo pipefail
           [ -n "${DEPLOY_SSH_KEY:-}" ] || { echo "::error::DEPLOY_SSH_KEY is empty."; exit 1; }
-          [ -n "${DEPLOY_HOST:-}" ] || { echo "::error::DEPLOY_HOST is empty. Checked secrets.DEPLOY_HOST and vars.DEPLOY_HOST. If you set an Environment secret/variable, add jobs.deploy.environment: <env-name>."; exit 1; }
-          [ -n "${DEPLOY_PORT:-}" ] || { echo "::error::DEPLOY_PORT is empty. Checked secrets.DEPLOY_PORT and vars.DEPLOY_PORT."; exit 1; }
-          [ -n "${DEPLOY_USER:-}" ] || { echo "::error::DEPLOY_USER is empty. Checked secrets.DEPLOY_USER and vars.DEPLOY_USER. If you set an Environment secret/variable, add jobs.deploy.environment: <env-name>."; exit 1; }
-          [ -n "${DEPLOY_PATH:-}" ] || { echo "::error::DEPLOY_PATH is empty. Checked secrets.DEPLOY_PATH and vars.DEPLOY_PATH. If you set an Environment secret/variable, add jobs.deploy.environment: <env-name>."; exit 1; }
+          [ -n "${DEPLOY_HOST:-}" ] || { echo "::error::DEPLOY_HOST is empty."; exit 1; }
+          [ -n "${DEPLOY_PORT:-}" ] || { echo "::error::DEPLOY_PORT is empty."; exit 1; }
+          [ -n "${DEPLOY_USER:-}" ] || { echo "::error::DEPLOY_USER is empty."; exit 1; }
+          [ -n "${DEPLOY_PATH:-}" ] || { echo "::error::DEPLOY_PATH is empty."; exit 1; }
+          [ -n "${REGISTRY_USERNAME:-}" ] || { echo "::error::REGISTRY_USERNAME is empty."; exit 1; }
+          [ -n "${REGISTRY_TOKEN:-}" ] || { echo "::error::REGISTRY_TOKEN is empty."; exit 1; }
+          [ -n "${BACKEND_IMAGE:-}" ] || { echo "::error::BACKEND_IMAGE is empty."; exit 1; }
+          [ -n "${FRONTEND_IMAGE:-}" ] || { echo "::error::FRONTEND_IMAGE is empty."; exit 1; }
 
       - name: Set up SSH
         run: |
@@ -103,33 +160,35 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
 
-      - name: Show deploy key fingerprint
-        run: |
-          set -euo pipefail
-          echo "Deploy key fingerprint:"
-          ssh-keygen -lf ~/.ssh/id_ed25519 -E sha256
-
       - name: Verify SSH authentication
         run: |
           set -euo pipefail
-          ssh -T -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/id_ed25519 -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "echo SSH authentication succeeded" || {
-            echo "::error::SSH authentication failed. Check DEPLOY_USER, DEPLOY_PORT, and that the public key for DEPLOY_SSH_KEY is present in ~/.ssh/authorized_keys for that user on the server."
-            exit 1
-          }
+          ssh -T -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/id_ed25519 -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "echo SSH authentication succeeded"
+
+      - name: Upload production compose file
+        run: |
+          set -euo pipefail
+          ssh -T -o StrictHostKeyChecking=yes -i ~/.ssh/id_ed25519 -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_PATH'"
+          scp -P "$DEPLOY_PORT" -i ~/.ssh/id_ed25519 docker-compose.prod.yml "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/docker-compose.prod.yml"
 
       - name: Deploy via SSH
         run: |
           set -euo pipefail
           ssh -T -o StrictHostKeyChecking=yes -i ~/.ssh/id_ed25519 -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" <<EOF
+          set -euo pipefail
           mkdir -p "$DEPLOY_PATH"
           cd "$DEPLOY_PATH"
 
-          # create env file
-          echo "AUTO_BOOTSTRAP=false" > .env
-          echo "FRONTEND_PORT=80" >> .env
+          printf '%s\n' "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USERNAME" --password-stdin
 
-          # pull latest images and restart
-          docker compose -f docker-compose.prod.yml pull
-          docker compose -f docker-compose.prod.yml down
-          docker compose -f docker-compose.prod.yml up -d
+          cat > .env <<ENVEOF
+          BACKEND_IMAGE=$BACKEND_IMAGE
+          FRONTEND_IMAGE=$FRONTEND_IMAGE
+          AUTO_BOOTSTRAP=$AUTO_BOOTSTRAP
+          FRONTEND_PORT=$FRONTEND_PORT
+          ENVEOF
+
+          docker compose --env-file .env -f docker-compose.prod.yml pull
+          docker compose --env-file .env -f docker-compose.prod.yml down
+          docker compose --env-file .env -f docker-compose.prod.yml up -d
           EOF
