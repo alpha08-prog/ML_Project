@@ -9,9 +9,11 @@ RUN conda env create -f environment.yml && conda clean -afy
 # Make RUN commands use the conda environment
 SHELL ["conda", "run", "-n", "mlproj", "/bin/bash", "-c"]
 
-# Install poetry and project dependencies
+# Install poetry and project dependencies. Re-lock during image build so
+# production can pick up the CPU-only XGBoost package without relying on a
+# stale checked-in lockfile.
 COPY backend/pyproject.toml backend/poetry.lock backend/poetry.toml ./backend/
-RUN cd backend && poetry install --no-root --no-interaction
+RUN cd backend && poetry lock && poetry install --no-root --no-interaction
 
 # Copy project files
 COPY backend/ ./backend/

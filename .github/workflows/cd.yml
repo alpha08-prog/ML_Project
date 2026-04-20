@@ -188,7 +188,8 @@ jobs:
           FRONTEND_PORT=$FRONTEND_PORT
           ENVEOF
 
+          docker compose --env-file .env -f docker-compose.prod.yml down || true
+          docker system prune -af || true
           docker compose --env-file .env -f docker-compose.prod.yml pull
-          docker compose --env-file .env -f docker-compose.prod.yml down
           docker compose --env-file .env -f docker-compose.prod.yml up -d
           EOF

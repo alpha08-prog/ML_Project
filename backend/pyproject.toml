@@ -13,7 +13,7 @@ requires-python = ">=3.12"
 dependencies = [
     "pyedflib (>=0.1.30)",
     "mne (>=1.5.0)",
-    "xgboost (>=2.0.0)",
+    "xgboost-cpu (>=2.1.2,<4.0.0)",
     "seaborn (>=0.12.0)",
     "umap-learn (>=0.5.4)",
     "shap (>=0.42.0)",
